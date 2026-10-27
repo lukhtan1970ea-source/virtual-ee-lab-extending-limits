@@ -5,23 +5,23 @@ import os
 def interactive_bench(stage_name, key=None):
     """
     Кастомний компонент для інтерактивного лабораторного стенда.
-    Зчитує чистий HTML/JS з окремого файлу index.html.
+    Безпечно завантажує index.html через механізм Streamlit без ручного replace.
     """
-    # Знаходимо шлях до файлу index.html у тій самій папці
+    # Знаходимо шлях до папки з файлом index.html
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    html_path = os.path.join(current_dir, "index.html")
+    html_file_path = os.path.join(current_dir, "index.html")
     
-    with open(html_path, "r", encoding="utf-8") as f:
+    # Перевіряємо, чи файл взагалі існує, щоб уникнути збоїв
+    if not os.path.exists(html_file_path):
+        st.error(f"Помилка: Файл index.html не знайдено у папці components!")
+        return None
+
+    with open(html_file_path, "r", encoding="utf-8") as f:
         html_code = f.read()
     
-    # Інжектуємо назву поточного етапу (stage1, stage2, stage3) у скрипт
-    # замінюючи технічний рядок параметру
-    html_code = html_code.replace(
-        "let currentStage = urlParams.get('stage') || 'stage1';",
-        f"let currentStage = '{stage_name}';"
-    )
-    
-    # Рендеримо чистий, легкий HTML-компонент у Streamlit
-    component_value = components.html(html_code, height=460, key=key)
-    return component_value
+    # Передаємо назву етапу через простий хак всередині скрипта перед рендером
+    html_code = html_code.replace("let currentStage = 'stage1';", f"let currentStage = '{stage_name}';")
+    html_code = html_code.replace("let currentStage = urlParams.get('stage') || 'stage1';", f"let currentStage = '{stage_name}';")
 
+    # Рендеримо HTML всередині iFrame
+    return components.html(html_code, height=470, key=key)

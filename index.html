@@ -2,111 +2,188 @@
 <html>
 <head>
     <style>
-        #canvas-container { text-align: center; font-family: 'Courier New', monospace; }
+        #canvas-container { text-align: center; font-family: monospace; }
         canvas { border: 3px solid #4A4A4A; background-color: #F5F5F5; box-shadow: 0px 4px 10px rgba(0,0,0,0.15); border-radius: 8px; cursor: default; }
-        .controls { margin-top: 10px; }
-        button { background-color: #FF4B4B; color: white; border: none; padding: 8px 16px; font-size: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { background-color: #FF4B4B; color: white; border: none; padding: 8px 16px; font-size: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         button:hover { background-color: #E03E3E; }
     </style>
 </head>
 <body>
-    <div id="canvas-container">
-        <canvas id="benchCanvas" width="700" height="400"></canvas>
-        <div class="controls"><button id="clearBtn">🧹 Очистити всі дроти</button></div>
-    </div>
-    <script>
-        function sendDataToPython(wires, knobAngle) {
-            const data = { wires: wires, knobAngle: knobAngle };
-            window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setComponentValue", value: data }, "*");
+<div id="canvas-container">
+    <canvas id="benchCanvas" width="700" height="400"></canvas>
+    <div><button id="clearBtn">🧹 Очистити всі дроти</button></div>
+</div>
+<script>
+const canvas = document.getElementById('benchCanvas'); const ctx = canvas.getContext('2d'); const clearBtn = document.getElementById('clearBtn');
+const urlParams = new URLSearchParams(window.location.search);
+let currentStage = urlParams.get('stage') || 'stage1';
+let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
+let knob = { x: 150, y: 320, r: 25, angle: 0, isDragging: false };
+
+const terminals = [
+    { id: "source_plus", name: "Джерело +", x: 50, y: 60, r: 8, color: "#FF4B4B" },
+    { id: "source_minus", name: "Джерело -", x: 50, y: 120, r: 8, color: "#1E1E1E" },
+    { id: "ua_plus", name: "μA +", x: 320, y: 60, r: 8, color: "#FF4B4B" },
+    { id: "ua_minus", name: "μA -", x: 380, y: 60, r: 8, color: "#1E1E1E" },
+    { id: "ep_in", name: "ЕП Вхід", x: 560, y: 100, r: 8, color: "#FFA500" },
+    { id: "ep_com", name: "ЕП Спільний", x: 620, y: 100, r: 8, color: "#1E1E1E" },
+    { id: "r2_1", name: "R2 контакт 1", x: 340, y: 220, r: 8, color: "#666" },
+    { id: "r2_2", name: "R2 контакт 2", x: 420, y: 220, r: 8, color: "#666" },
+    { id: "r1_top", name: "R1` Верх", x: 110, y: 280, r: 6, color: "#666" },
+    { id: "r1_bot", name: "R1` Ниж", x: 190, y: 280, r: 6, color: "#666" },
+    { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 250, r: 6, color: "#32CD32" }
+];
+
+if (currentStage === "stage2") {
+    terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
+}
+
+function hasWire(t1, t2) {
+    return wires.some(w => (w.from.id === t1 && w.to.id === t2) || (w.from.id === t2 && w.to.id === t1));
+}
+
+function getCircuitValues() {
+    // Внутрішній розрахунок JS для миттєвої анімації стрілки та екрану В7-21А
+    const r1_factor = (Math.sin(knob.angle) + 1) / 2.0;
+    
+    if (currentStage === "stage1") {
+        const is_correct = hasWire("source_plus", "r1_top") && hasWire("source_minus", "r1_bot") && hasWire("r1_wiper", "ua_plus") && hasWire("ua_minus", "r2_1") && hasWire("r2_2", "ep_in") && (hasWire("ep_com", "r1_bot") || hasWire("ep_com", "source_minus"));
+        if (!is_correct) return { I_ep: 0, n: 0, mode: "μA" };
+        const total_R = 1000.0 + 4000.0 + (r1_factor * 5000.0);
+        const I = (5.0 / total_R) * 1e6;
+        return { I_ep: I, n: (I / 50.0) * 50.0, mode: "μA" };
+    } 
+    else if (currentStage === "stage2") {
+        const has_shunt = hasWire("ua_plus", "rsh_1") && hasWire("ua_minus", "rsh_2");
+        const is_correct = hasWire("source_plus", "r1_top") && hasWire("source_minus", "r1_bot") && hasWire("r1_wiper", "ua_plus") && has_shunt && hasWire("ua_minus", "r2_1") && hasWire("r2_2", "ep_in") && (hasWire("ep_com", "r1_bot") || hasWire("ep_com", "source_minus"));
+        if (!is_correct) return { I_ep: 0, n: 0, mode: "μA" };
+        const R_parallel = (1000.0 * 111.11) / (1000.0 + 111.11);
+        const total_R = R_parallel + 4000.0 + (r1_factor * 1000.0);
+        const total_I = (5.0 / total_R) * 1e6;
+        const I_micro = total_I * (111.11 / (1000.0 + 111.11));
+        return { I_ep: total_I, n: I_micro > 55 ? 50 : (I_micro / 50.0) * 50.0, mode: "μA" };
+    } 
+    else {
+        const is_series = hasWire("ua_minus", "r2_1");
+        const is_ep_para = hasWire("ua_plus", "ep_in") && hasWire("r2_2", "ep_com");
+        const is_connected = hasWire("source_plus", "r1_top") && hasWire("source_minus", "r1_bot") && hasWire("r1_wiper", "ua_plus") && hasWire("r2_2", "source_minus");
+        if (!(is_series && is_ep_para && is_connected)) return { I_ep: 0, n: 0, mode: "mV" };
+        const R_voltmeter = 1000.0 + 4000.0;
+        const total_R = (r1_factor * 3000.0) + R_voltmeter;
+        const I = 5.0 / total_R;
+        return { I_ep: I * R_voltmeter * 1000.0, n: ((I * 1e6) / 50.0) * 50.0, mode: "mV" };
+    }
+}
+function drawMicroampermeter(n_val) {
+    // Малюємо корпус мікроамперметра
+    ctx.fillStyle = "#2B2B2B"; ctx.fillRect(260, 15, 170, 130); ctx.strokeRect(260, 15, 170, 130);
+    ctx.fillStyle = "#FFFDD0"; ctx.fillRect(270, 20, 150, 95); // Внутрішнє біле тло шкали
+    
+    // Малюємо дугу шкали (як на фото)
+    ctx.beginPath();
+    ctx.arc(345, 135, 95, -Math.PI * 0.78, -Math.PI * 0.22);
+    ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Малюємо поділки (0, 10, 20, 30, 40, 50)
+    ctx.fillStyle = "#000"; ctx.font = "10px 'Courier New'"; ctx.textAlign = "center";
+    for (let i = 0; i <= 50; i += 5) {
+        // Обчислюємо кут для кожної поділки шкали
+        let angle = -Math.PI * 0.75 + (i / 50.0) * (Math.PI * 0.5);
+        let isMajor = (i % 10 === 0);
+        let len = isMajor ? 8 : 4;
+        
+        let x1 = 345 + 95 * Math.cos(angle); let y1 = 135 + 95 * Math.sin(angle);
+        let x2 = 345 + (95 - len) * Math.cos(angle); let y2 = 135 + (95 - len) * Math.sin(angle);
+        
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        
+        if (isMajor) {
+            let tx = 345 + 80 * Math.cos(angle); let ty = 135 + 80 * Math.sin(angle);
+            ctx.fillText(i, tx, ty);
         }
+    }
+    
+    // Напис μA по центру (як на фото)
+    ctx.font = "bold 14px Arial"; ctx.fillText("μА", 345, 95);
 
-        const canvas = document.getElementById('benchCanvas');
-        const ctx = canvas.getContext('2d');
-        const clearBtn = document.getElementById('clearBtn');
+    // Малюємо анімовану СТРІЛКУ
+    let targetAngle = -Math.PI * 0.75 + (n_val / 50.0) * (Math.PI * 0.5);
+    let sx = 345 + 92 * Math.cos(targetAngle); let sy = 135 + 92 * Math.sin(targetAngle);
+    ctx.beginPath(); ctx.moveTo(345, 125); ctx.lineTo(sx, sy);
+    ctx.strokeStyle = "#FF0000"; ctx.lineWidth = 1.5; ctx.stroke();
+    
+    // Гвинт коректора внизу стрілки (чорний кружечок як на фото)
+    ctx.beginPath(); ctx.arc(345, 125, 4, 0, 2 * Math.PI); ctx.fillStyle = "#000"; ctx.fill();
+    ctx.lineWidth = 1; // Скидання товщини лінії
+}
 
-        let currentStage = "stage1";
-        let isInitialized = true;
-        let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
-        let knob = { x: 150, y: 320, r: 25, angle: 0, isDragging: false };
+function drawBench() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const vals = getCircuitValues();
 
-        const terminals = [
-            { id: "source_plus", name: "Джерело +", x: 50, y: 60, r: 8, color: "#FF4B4B" },
-            { id: "source_minus", name: "Джерело -", x: 50, y: 120, r: 8, color: "#1E1E1E" },
-            { id: "ua_plus", name: "μA +", x: 320, y: 60, r: 8, color: "#FF4B4B" },
-            { id: "ua_minus", name: "μA -", x: 380, y: 60, r: 8, color: "#1E1E1E" },
-            { id: "ep_in", name: "ЕП Вхід", x: 560, y: 100, r: 8, color: "#FFA500" },
-            { id: "ep_com", name: "ЕП Спільний", x: 620, y: 100, r: 8, color: "#1E1E1E" },
-            { id: "r2_1", name: "R2 контакт 1", x: 340, y: 220, r: 8, color: "#666" },
-            { id: "r2_2", name: "R2 контакт 2", x: 420, y: 220, r: 8, color: "#666" },
-            { id: "r1_top", name: "R1 Верх", x: 110, y: 280, r: 6, color: "#666" },
-            { id: "r1_bot", name: "R1 Ниж", x: 190, y: 280, r: 6, color: "#666" },
-            { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 250, r: 6, color: "#32CD32" }
-        ];
+    // 1. Джерело живлення
+    ctx.fillStyle = "#EAEAEA"; ctx.fillRect(20, 20, 120, 130); ctx.strokeStyle = "#333"; ctx.strokeRect(20, 20, 120, 130);
+    ctx.fillStyle = "#333"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText("Джерело =U", 35, 40);
 
-        if (currentStage === "stage2") {
-            terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
-            terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
-        }
-        function drawBench() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 2. Отрисовка нашого нового РЕАЛІСТИЧНОГО мікроамперметра
+    drawMicroampermeter(vals.n);
 
-            // 1. Джерело живлення
-            ctx.fillStyle = "#EAEAEA"; ctx.fillRect(20, 20, 120, 130); ctx.strokeStyle = "#333"; ctx.strokeRect(20, 20, 120, 130);
-            ctx.fillStyle = "#333"; ctx.font = "bold 12px Arial"; ctx.fillText("Джерело =U", 35, 40);
+    // 3. Еталонний прилад В7-21А (Додали кнопки вибору режимів та індикатори як на фото)
+    ctx.fillStyle = "#222222"; ctx.fillRect(520, 15, 160, 130); ctx.strokeRect(520, 15, 160, 130);
+    ctx.fillStyle = "#0A0A0A"; ctx.fillRect(530, 25, 140, 45); // Екран
+    // Текст В7-21А зверху корпусу
+    ctx.fillStyle = "#888"; ctx.font = "bold 10px Arial"; ctx.fillText("ВОЛЬТМЕТР УНІВЕРСАЛЬНИЙ", 535, 20);
+    
+    // Яскраві червоні світлодіодні цифри екрану
+    ctx.fillStyle = "#FF1111"; ctx.font = "bold 22px 'Courier New'"; ctx.textAlign = "right";
+    ctx.fillText(vals.I_ep.toFixed(vals.mode === "μA" ? 2 : 1), 635, 55);
+    // Маленький індикатор режиму біля цифр
+    ctx.font = "10px Arial"; ctx.fillText(vals.mode, 660, 52);
 
-            // 2. Мікроамперметр
-            ctx.fillStyle = "#FFFDD0"; ctx.fillRect(280, 20, 140, 100); ctx.strokeRect(280, 20, 140, 100);
-            ctx.fillStyle = "#333"; ctx.fillText("Мікроамперметр", 295, 40);
+    // Візуальні крутилки меж під екраном В7-21А (як на фото)
+    ctx.beginPath(); ctx.arc(560, 95, 12, 0, 2 * Math.PI); ctx.fillStyle = "#444"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(630, 95, 12, 0, 2 * Math.PI); ctx.fillStyle = "#444"; ctx.fill(); ctx.stroke();
 
-            // 3. Еталонний прилад В7-21А
-            ctx.fillStyle = "#3A3A3A"; ctx.fillRect(520, 20, 160, 110); ctx.strokeRect(520, 20, 160, 110);
-            ctx.fillStyle = "#000"; ctx.fillRect(535, 35, 130, 40); ctx.fillStyle = "#FF3333"; ctx.font = "bold 20px 'Courier New'"; ctx.fillText("В7-21А", 555, 62);
+    // 4. Резистор R2
+    ctx.fillStyle = "#DEB887"; ctx.fillRect(330, 195, 100, 40); ctx.strokeRect(330, 195, 100, 40);
+    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("Резистор R2", 380, 218);
 
-            // 4. Резистор R2
-            ctx.fillStyle = "#DEB887"; ctx.fillRect(330, 190, 100, 40); ctx.strokeRect(330, 190, 100, 40);
-            ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.fillText("Резистор R2", 345, 212);
+    // 5. Потенціометр R1
+    ctx.fillStyle = "#D3D3D3"; ctx.fillRect(80, 220, 140, 130); ctx.strokeRect(80, 220, 140, 130);
+    ctx.fillStyle = "#333"; ctx.fillText("Регулятор R1", 150, 240);
+    ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI); ctx.fillStyle = "#555"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(knob.x, knob.y); ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle)); ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke(); ctx.lineWidth = 1;
 
-            // 5. Потенціометр R1
-            ctx.fillStyle = "#D3D3D3"; ctx.fillRect(80, 220, 140, 130); ctx.strokeRect(80, 220, 140, 130);
-            ctx.fillStyle = "#333"; ctx.fillText("Регулятор R1", 110, 240);
-            
-            ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI); ctx.fillStyle = "#666"; ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(knob.x, knob.y); ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle)); ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke(); ctx.lineWidth = 1;
+    if (currentStage === "stage2") {
+        ctx.fillStyle = "#E6E6FA"; ctx.fillRect(310, 130, 80, 25); ctx.strokeRect(310, 130, 80, 25);
+        ctx.fillStyle = "#333"; ctx.fillText("Шунт Rш", 350, 146);
+    }
 
-            if (currentStage === "stage2") {
-                ctx.fillStyle = "#E6E6FA"; ctx.fillRect(310, 125, 80, 30); ctx.strokeRect(310, 125, 80, 30);
-                ctx.fillStyle = "#333"; ctx.fillText("Шунт Rш", 325, 142);
-            }
+    // Малюємо клеми та дроти
+    terminals.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 2 * Math.PI); ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke(); });
+    wires.forEach(w => { ctx.beginPath(); ctx.moveTo(w.from.x, w.from.y); ctx.lineTo(w.to.x, w.to.y); ctx.strokeStyle = w.from.id.includes("plus") ? "#FF3333" : (w.from.id.includes("minus") ? "#111111" : "#4682B4"); ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.stroke(); });
+    if (isDrawing && activeTerminal) { ctx.beginPath(); ctx.moveTo(activeTerminal.x, activeTerminal.y); ctx.lineTo(mouseX, mouseY); ctx.strokeStyle = activeTerminal.id.includes("plus") ? "#FF3333" : (activeTerminal.id.includes("minus") ? "#111111" : "#4682B4"); ctx.lineWidth = 3; ctx.stroke(); }
+}
 
-            terminals.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 2 * Math.PI); ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke(); });
-            wires.forEach(w => { ctx.beginPath(); ctx.moveTo(w.from.x, w.from.y); ctx.lineTo(w.to.x, w.to.y); ctx.strokeStyle = w.from.id.includes("plus") ? "#FF3333" : (w.from.id.includes("minus") ? "#111111" : "#4682B4"); ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.stroke(); });
+function getTerminalAt(x, y) { return terminals.find(t => Math.hypot(t.x - x, t.y - y) < t.r + 5); }
+function isOverKnob(x, y) { return Math.hypot(knob.x - x, knob.y - y) < knob.r; }
 
-            if (isDrawing && activeTerminal) {
-                ctx.beginPath(); ctx.moveTo(activeTerminal.x, activeTerminal.y); ctx.lineTo(mouseX, mouseY);
-                ctx.strokeStyle = activeTerminal.id.includes("plus") ? "#FF3333" : (activeTerminal.id.includes("minus") ? "#111111" : "#4682B4");
-                ctx.lineWidth = 3; ctx.stroke();
-            }
-        }
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
+    const overTerminal = getTerminalAt(mouseX, mouseY); const overKnob = isOverKnob(mouseX, mouseY);
+    canvas.style.cursor = (overTerminal || overKnob || knob.isDragging) ? 'pointer' : 'default';
+    if (overTerminal) canvas.title = overTerminal.name;
+    if (knob.isDragging) { knob.angle = Math.atan2(mouseY - knob.y, mouseX - knob.x); drawBench(); }
+    if (isDrawing) drawBench();
+});
 
-        function getTerminalAt(x, y) { return terminals.find(t => Math.hypot(t.x - x, t.y - y) < t.r + 5); }
-        function isOverKnob(x, y) { return Math.hypot(knob.x - x, knob.y - y) < knob.r; }
+canvas.addEventListener('mousedown', (e) => { if (e.button !== 0) return; const t = getTerminalAt(mouseX, mouseY); if (t) { isDrawing = true; activeTerminal = t; } else if (isOverKnob(mouseX, mouseY)) { knob.isDragging = true; } });
+canvas.addEventListener('mouseup', (e) => { if (knob.isDragging) { knob.isDragging = false; return; } if (isDrawing) { const targetTerminal = getTerminalAt(mouseX, mouseY); if (targetTerminal && targetTerminal.id !== activeTerminal.id) { const alreadyExists = wires.some(w => (w.from.id === activeTerminal.id && w.to.id === targetTerminal.id) || (w.from.id === targetTerminal.id && w.to.id === activeTerminal.id)); if (!alreadyExists) { wires.push({ from: activeTerminal, to: targetTerminal }); drawBench(); } } isDrawing = false; activeTerminal = null; drawBench(); } });
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); for (let i = wires.length - 1; i >= 0; i--) { let w = wires[i]; let dist = Math.abs((w.to.y - w.from.y)*mouseX - (w.to.x - w.from.x)*mouseY + w.to.x*w.from.y - w.to.y*w.from.x) / Math.hypot(w.to.x - w.from.x, w.to.y - w.from.y); if (dist < 8) { wires.splice(i, 1); drawBench(); break; } } });
+clearBtn.addEventListener('click', () => { wires = []; drawBench(); });
 
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
-            const overTerminal = getTerminalAt(mouseX, mouseY); const overKnob = isOverKnob(mouseX, mouseY);
-            canvas.style.cursor = (overTerminal || overKnob || knob.isDragging) ? 'pointer' : 'default';
-            if (overTerminal) canvas.title = overTerminal.name;
-            if (knob.isDragging) { knob.angle = Math.atan2(mouseY - knob.y, mouseX - knob.x); drawBench(); if (isInitialized) sendDataToPython(wires, knob.angle); }
-            if (isDrawing) drawBench();
-        });
-
-        canvas.addEventListener('mousedown', (e) => { if (e.button !== 0) return; const t = getTerminalAt(mouseX, mouseY); if (t) { isDrawing = true; activeTerminal = t; } else if (isOverKnob(mouseX, mouseY)) { knob.isDragging = true; } });
-        canvas.addEventListener('mouseup', (e) => { if (knob.isDragging) { knob.isDragging = false; return; } if (isDrawing) { const targetTerminal = getTerminalAt(mouseX, mouseY); if (targetTerminal && targetTerminal.id !== activeTerminal.id) { const alreadyExists = wires.some(w => (w.from.id === activeTerminal.id && w.to.id === targetTerminal.id) || (w.from.id === targetTerminal.id && w.to.id === activeTerminal.id)); if (!alreadyExists) { wires.push({ from: activeTerminal, to: targetTerminal }); if (isInitialized) sendDataToPython(wires, knob.angle); } } isDrawing = false; activeTerminal = null; drawBench(); } });
-        canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); for (let i = wires.length - 1; i >= 0; i--) { let w = wires[i]; let dist = Math.abs((w.to.y - w.from.y)*mouseX - (w.to.x - w.from.x)*mouseY + w.to.x*w.from.y - w.to.y*w.from.x) / Math.hypot(w.to.x - w.from.x, w.to.y - w.from.y); if (dist < 8) { wires.splice(i, 1); if (isInitialized) sendDataToPython(wires, knob.angle); drawBench(); break; } } });
-        clearBtn.addEventListener('click', () => { wires = []; if (isInitialized) sendDataToPython(wires, knob.angle); drawBench(); });
-
-        drawBench();
-        setTimeout(() => { sendDataToPython(wires, knob.angle); }, 150);
-    </script>
+drawBench();
+</script>
 </body>
 </html>

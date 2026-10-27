@@ -53,21 +53,8 @@
         const ctx = canvas.getContext('2d');
         const clearBtn = document.getElementById('clearBtn');
 
-        // Отримуємо назву етапу з URL-параметрів, які передасть Python
-        // Переменная для хранения текущей вкладки
         let currentStage = "stage1";
-
-        // Слушаем данные, которые Python передает при инициализации компонента
-        window.addEventListener("message", function(event) {
-            const msg = event.data;
-            if (msg.type === "streamlit:render") {
-                // Извлекаем переданный аргумент 'stage'
-                if (msg.args && msg.args.stage) {
-                    currentStage = msg.args.stage;
-                    drawBench(); // Перерисовываем стенд под новую вкладку
-                }
-            }
-        });
+        let isInitialized = false;
         
         let wires = [];
         let activeTerminal = null;
@@ -90,11 +77,30 @@
             { id: "r1_bot", name: "R1 Ниж", x: 190, y: 280, r: 6, color: "#666" },
             { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 250, r: 6, color: "#32CD32" }
         ];
+        window.addEventListener("message", function(event) {
+            const msg = event.data;
+            if (msg.type === "streamlit:render") {
+                if (msg.args && msg.args.stage) {
+                    currentStage = msg.args.stage;
+                }
+                
+                const shunt1 = terminals.find(t => t.id === "rsh_1");
+                if (currentStage === "stage2" && !shunt1) {
+                    terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
+                    terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
+                } else if (currentStage !== "stage2" && shunt1) {
+                    const idx1 = terminals.findIndex(t => t.id === "rsh_1");
+                    if (idx1 > -1) terminals.splice(idx1, 2);
+                }
 
-        if (currentStage === "stage2") {
-            terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
-            terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
-        }
+                drawBench(); 
+                
+                if (!isInitialized) {
+                    isInitialized = true;
+                    sendDataToPython(wires, knob.angle);
+                }
+            }
+        });
 
         function drawBench() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -190,7 +196,6 @@
                 ctx.stroke();
             }
         }
-
         function getTerminalAt(x, y) {
             return terminals.find(t => Math.hypot(t.x - x, t.y - y) < t.r + 5);
         }
@@ -209,6 +214,7 @@
             
             if (overTerminal || overKnob || knob.isDragging) {
                 canvas.style.cursor = 'pointer';
+                canvas.title = overTerminal ? overTerminal.name : "";
             } else {
                 canvas.style.cursor = 'default';
             }
@@ -216,7 +222,7 @@
             if (knob.isDragging) {
                 knob.angle = Math.atan2(mouseY - knob.y, mouseX - knob.x);
                 drawBench();
-                sendDataToPython(wires, knob.angle);
+                if (isInitialized) sendDataToPython(wires, knob.angle);
             }
 
             if (isDrawing) {
@@ -250,7 +256,7 @@
                     );
                     if (!alreadyExists) {
                         wires.push({ from: activeTerminal, to: targetTerminal });
-                        sendDataToPython(wires, knob.angle);
+                        if (isInitialized) sendDataToPython(wires, knob.angle);
                     }
                 }
                 isDrawing = false;
@@ -266,7 +272,7 @@
                 let dist = Math.abs((w.to.y - w.from.y)*mouseX - (w.to.x - w.from.x)*mouseY + w.to.x*w.from.y - w.to.y*w.from.x) / Math.hypot(w.to.x - w.from.x, w.to.y - w.from.y);
                 if (dist < 8) {
                     wires.splice(i, 1);
-                    sendDataToPython(wires, knob.angle);
+                    if (isInitialized) sendDataToPython(wires, knob.angle);
                     drawBench();
                     break;
                 }
@@ -275,7 +281,7 @@
 
         clearBtn.addEventListener('click', () => {
             wires = [];
-            sendDataToPython(wires, knob.angle);
+            if (isInitialized) sendDataToPython(wires, knob.angle);
             drawBench();
         });
 
@@ -283,4 +289,3 @@
     </script>
 </body>
 </html>
-

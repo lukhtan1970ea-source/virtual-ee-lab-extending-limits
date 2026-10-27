@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from components.canvas_bench import interactive_bench
+from canvas_bench import interactive_bench
 import physics as phys
 
 st.set_page_config(page_title="Віртуальна ЛР: Розширення меж приладів", layout="wide")

@@ -2,26 +2,20 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os
 
+# Получаем путь к папке, где лежит index.html
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Регистрируем наш компонент в Streamlit. 
+# Он сам автоматически найдет index.html в этой папке!
+_interactive_bench_component = components.declare_component(
+    "interactive_bench",
+    path=current_dir
+)
+
 def interactive_bench(stage_name, key=None):
     """
-    Кастомний компонент для інтерактивного лабораторного стенда.
-    Безпечно завантажує index.html через механізм Streamlit без ручного replace.
+    Вызывает зарегистрированный компонент и безопасно передает
+    параметры (например, имя вкладки) напрямую в JavaScript.
     """
-    # Знаходимо шлях до папки з файлом index.html
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    html_file_path = os.path.join(current_dir, "index.html")
-    
-    # Перевіряємо, чи файл взагалі існує, щоб уникнути збоїв
-    if not os.path.exists(html_file_path):
-        st.error(f"Помилка: Файл index.html не знайдено у папці components!")
-        return None
-
-    with open(html_file_path, "r", encoding="utf-8") as f:
-        html_code = f.read()
-    
-    # Передаємо назву етапу через простий хак всередині скрипта перед рендером
-    html_code = html_code.replace("let currentStage = 'stage1';", f"let currentStage = '{stage_name}';")
-    html_code = html_code.replace("let currentStage = urlParams.get('stage') || 'stage1';", f"let currentStage = '{stage_name}';")
-
-    # Рендеримо HTML всередині iFrame
-    return components.html(html_code, height=470, key=key)
+    # Вызываем компонент и передаем stage_name как аргумент внутрь JS
+    return _interactive_bench_component(stage=stage_name, key=key)

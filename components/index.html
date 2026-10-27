@@ -15,10 +15,17 @@
         <div class="controls"><button id="clearBtn">🧹 Очистити всі дроти</button></div>
     </div>
     <script>
+        // Функція відправки даних у Python
         function sendDataToPython(wires, knobAngle) {
-            const data = { wires: wires, knobAngle: knobAngle };
-            window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setComponentValue", value: data }, "*");
+            window.parent.postMessage({
+                isStreamlitMessage: true,
+                type: "streamlit:setComponentValue",
+                value: { wires: wires, knobAngle: knobAngle }
+            }, "*");
         }
+
+        // Повідомляємо Streamlit Cloud, що ми успішно завантажилися (це прибере жовте вікно!)
+        window.parent.postMessage({ type: "streamlit:componentReady", version: 1 }, "*");
 
         const canvas = document.getElementById('benchCanvas');
         const ctx = canvas.getContext('2d');
@@ -37,13 +44,12 @@
             { id: "ep_in", name: "ЕП Вхід", x: 560, y: 100, r: 8, color: "#FFA500" },
             { id: "ep_com", name: "ЕП Спільний", x: 620, y: 100, r: 8, color: "#1E1E1E" },
             { id: "r2_1", name: "R2 контакт 1", x: 340, y: 220, r: 8, color: "#666" },
-            { id: "r2_2", name: "R2 контакт 2", x: 420, y: 220, r: 8, color: "#666" },
+            { id: "r2_2", name: "R2 kontakt 2", x: 420, y: 220, r: 8, color: "#666" },
             { id: "r1_top", name: "R1 Верх", x: 110, y: 280, r: 6, color: "#666" },
             { id: "r1_bot", name: "R1 Ниж", x: 190, y: 280, r: 6, color: "#666" },
             { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 250, r: 6, color: "#32CD32" }
         ];
 
-        // Головний обробник зв'язку зі Streamlit Community Cloud
         window.addEventListener("message", function(event) {
             const msg = event.data;
             if (msg.type === "streamlit:render") {

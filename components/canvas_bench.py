@@ -19,4 +19,4 @@ def interactive_bench(stage_name, key=None):
     html_code = html_code.replace('let currentStage = urlParams.get(\'stage\') || \'stage1\';', f'let currentStage = "{stage_name}";')
     
     # Рендеримо сочний Canvas-стенд
-    return components.html(html_code, height=460, scrolling=False, key=key)
+    return components.html(html_code, height=470, key=key)

@@ -28,8 +28,11 @@ with tab1:
     col1, col2 = st.columns(2)
     with col1:
         bench_data = interactive_bench("stage1", key="bench_s1")
-    wires = bench_data.get("wires", []) if bench_data else []
-    angle = bench_data.get("knobAngle", 0.0) if bench_data else 0.0
+        if bench_data is None:
+        bench_data = {}
+    wires = bench_data.get("wires", [])
+    angle = bench_data.get("knobAngle", 0.0)
+
     res = phys.calculate_stage1(wires, angle)
     
     with col2:
@@ -57,8 +60,11 @@ with tab2:
     col1, col2 = st.columns(2)
     with col1:
         bench_data_s2 = interactive_bench("stage2", key="bench_s2")
-    wires_s2 = bench_data_s2.get("wires", []) if bench_data_s2 else []
-    angle_s2 = bench_data_s2.get("knobAngle", 0.0) if bench_data_s2 else 0.0
+        if bench_data_s2 is None:
+        bench_data_s2 = {}
+    wires_s2 = bench_data_s2.get("wires", [])
+    angle_s2 = bench_data_s2.get("knobAngle", 0.0)
+
     res_s2 = phys.calculate_stage2(wires_s2, angle_s2)
     
     with col2:
@@ -87,8 +93,11 @@ with tab3:
     col1, col2 = st.columns(2)
     with col1:
         bench_data_s3 = interactive_bench("stage3", key="bench_s3")
-    wires_s3 = bench_data_s3.get("wires", []) if bench_data_s3 else []
-    angle_s3 = bench_data_s3.get("knobAngle", 0.0) if bench_data_s3 else 0.0
+        if bench_data_s3 is None:
+        bench_data_s3 = {}
+    wires_s3 = bench_data_s3.get("wires", [])
+    angle_s3 = bench_data_s3.get("knobAngle", 0.0)
+
     res_s3 = phys.calculate_stage3(wires_s3, angle_s3)
     
     with col2:

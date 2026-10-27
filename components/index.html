@@ -54,8 +54,20 @@
         const clearBtn = document.getElementById('clearBtn');
 
         // Отримуємо назву етапу з URL-параметрів, які передасть Python
-        const urlParams = new URLSearchParams(window.location.search);
-        let currentStage = urlParams.get('stage') || 'stage1';
+        // Переменная для хранения текущей вкладки
+        let currentStage = "stage1";
+
+        // Слушаем данные, которые Python передает при инициализации компонента
+        window.addEventListener("message", function(event) {
+            const msg = event.data;
+            if (msg.type === "streamlit:render") {
+                // Извлекаем переданный аргумент 'stage'
+                if (msg.args && msg.args.stage) {
+                    currentStage = msg.args.stage;
+                    drawBench(); // Перерисовываем стенд под новую вкладку
+                }
+            }
+        });
         
         let wires = [];
         let activeTerminal = null;

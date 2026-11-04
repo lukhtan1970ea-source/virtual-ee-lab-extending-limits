@@ -16,11 +16,12 @@
 <script>
 const canvas = document.getElementById('benchCanvas'); const ctx = canvas.getContext('2d'); const clearBtn = document.getElementById('clearBtn');
 
-// АВТОМАТИЧНЕВИЗНАЧЕННЯ ЕТАПУ З СТРІМЛІТ КЛЮЧА
 let currentStage = window.name.includes("bench_s2") ? "stage2" : (window.name.includes("bench_s3") ? "stage3" : "stage1");
 
 let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
-let knob = { x: 150, y: 320, r: 25, angle: -Math.PI/2, isDragging: false };
+
+// Новая логика ручки: значение от 0.0 до 1.0 (задаем начальное 0.5)
+let knob = { x: 150, y: 320, r: 25, value: 0.5, isDragging: false, startX: 0, startValue: 0 };
 
 const terminals = [
     { id: "source_plus", name: "Джерело +", x: 50, y: 60, r: 8, color: "#FF4B4B" },
@@ -46,7 +47,6 @@ function hasWire(t1, t2) {
 }
 
 function sendDataToStreamlit(vals) {
-    // Передаємо покази приладів у батьківське вікно Streamlit в реальному часі
     window.parent.postMessage({
         type: "LAB_UPDATE",
         stage: currentStage,
@@ -55,22 +55,18 @@ function sendDataToStreamlit(vals) {
     }, "*");
 }
 function getCircuitValues() {
-    // Вычисляем линейный коэффициент от 0 до 1 в зависимости от угла ручки
-    let normAngle = (knob.angle + Math.PI) / (2 * Math.PI);
-    if (normAngle < 0) normAngle = 0;
-    if (normAngle > 1) normAngle = 1;
-
+    // Рассчитываем реальное сопротивление потенциометра R1 от 0% до 100% положения ручки
     let r1_actual = 0;
-    if (currentStage === "stage1") r1_actual = normAngle * 5000.0;
-    else if (currentStage === "stage2") r1_actual = normAngle * 1000.0;
-    else r1_actual = normAngle * 3000.0;
+    if (currentStage === "stage1") r1_actual = knob.value * 5000.0;
+    else if (currentStage === "stage2") r1_actual = knob.value * 1000.0;
+    else r1_actual = knob.value * 3000.0;
 
     if (currentStage === "stage1") {
         const is_correct = hasWire("source_plus", "r1_top") && hasWire("source_minus", "r1_bot") && hasWire("r1_wiper", "ua_plus") && hasWire("ua_minus", "r2_1") && hasWire("r2_2", "ep_in") && (hasWire("ep_com", "r1_bot") || hasWire("ep_com", "source_minus"));
         if (!is_correct) return { I_ep: 0, n: 0, mode: "μA" };
         
         const total_R = 1000.0 + 4000.0 + r1_actual;
-        const I = (5.0 / total_R) * 1e6;
+        const I = (5.0 / total_R) * 1e6; // Струм в мкА
         return { I_ep: I, n: (I / 50.0) * 50.0, mode: "μA" };
     } 
     else if (currentStage === "stage2") {
@@ -80,8 +76,8 @@ function getCircuitValues() {
         
         const R_parallel = (1000.0 * 111.11) / (1000.0 + 111.11);
         const total_R = R_parallel + 4000.0 + r1_actual;
-        const total_I = (5.0 / total_R) * 1e6;
-        const I_micro = total_I * (111.11 / (1000.0 + 111.11));
+        const total_I = (5.0 / total_R) * 1e6; // Повний струм
+        const I_micro = total_I * (111.11 / (1000.0 + 111.11)); // Струм через прилад
         
         return { I_ep: total_I, n: I_micro > 55.0 ? 50.0 : (I_micro / 50.0) * 50.0, mode: "μA" };
     } 
@@ -94,7 +90,7 @@ function getCircuitValues() {
         const R_voltmeter = 1000.0 + 4000.0;
         const total_R = r1_actual + R_voltmeter;
         const I = 5.0 / total_R;
-        const U_mv = (I * R_voltmeter) * 1000.0;
+        const U_mv = (I * R_voltmeter) * 1000.0; // Напруга в мВ
         const n_div = ((I * 1e6) / 50.0) * 50.0;
         
         return { I_ep: U_mv, n: n_div > 50.0 ? 50.0 : n_div, mode: "mV" };
@@ -141,6 +137,9 @@ function drawBench() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const vals = getCircuitValues();
 
+    // Визуальный угол указателя ручки теперь зависит линейно от knob.value
+    let renderAngle = -Math.PI * 0.75 + knob.value * (Math.PI * 1.5);
+
     ctx.fillStyle = "#EAEAEA"; ctx.fillRect(20, 20, 120, 130); ctx.strokeStyle = "#333"; ctx.strokeRect(20, 20, 120, 130);
     ctx.fillStyle = "#333"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText("Джерело =5V", 35, 40);
 
@@ -163,10 +162,11 @@ function drawBench() {
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);
     ctx.fillStyle = "#333"; ctx.fillText("Потенціометр R1", 150, 215);
 
+    // Отрисовка ручки потенциометра
     ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI);
     ctx.fillStyle = "#555"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(knob.x, knob.y);
-    ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle));
+    ctx.lineTo(knob.x + knob.r * Math.cos(renderAngle), knob.y + knob.r * Math.sin(renderAngle));
     ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke();
     ctx.lineWidth = 1;
 
@@ -198,8 +198,12 @@ canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
 
+    // Проверка клика по ручке
     if (Math.hypot(x - knob.x, y - knob.y) < knob.r) {
-        knob.isDragging = true; return;
+        knob.isDragging = true;
+        knob.startX = e.clientX;
+        knob.startValue = knob.value;
+        return;
     }
 
     terminals.forEach(t => {
@@ -214,7 +218,11 @@ canvas.addEventListener('mousemove', (e) => {
     mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
 
     if (knob.isDragging) {
-        knob.angle = Math.atan2(mouseY - knob.y, mouseX - knob.x);
+        // Линейное изменение значения при движении мыши по горизонтали (чувствительность 200px)
+        let dx = e.clientX - knob.startX;
+        knob.value = knob.startValue + (dx / 200.0);
+        if (knob.value < 0) knob.value = 0;
+        if (knob.value > 1) knob.value = 1;
         drawBench();
         sendDataToStreamlit(getCircuitValues());
     } else if (isDrawing) {

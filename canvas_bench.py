@@ -4,7 +4,8 @@ import os
 
 def interactive_bench(stage_name, r1_value, key=None):
     """
-    Стабільний компонент. Передає значення опору R1 з повзунка Streamlit всередину JS.
+    Стабільний компонент. Передає значення опору R1 всередину JS 
+    та адаптує розміри під екран без обрізання.
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     html_path = os.path.join(current_dir, "index.html")
@@ -15,8 +16,9 @@ def interactive_bench(stage_name, r1_value, key=None):
     # Внедряем выбранную стадию и текущее значение сопротивления R1
     html_code = html_code.replace("let currentStage = 'stage1';", f"let currentStage = '{stage_name}';")
     html_code = html_code.replace("let currentStage = urlParams.get('stage') || 'stage1';", f"let currentStage = '{stage_name}';")
-    
-    # Динамически передаем реальное значение R1 из слайдера в JS-переменную
     html_code = html_code.replace("let r1_from_streamlit = 2500;", f"let r1_from_streamlit = {r1_value};")
 
-    return components.html(html_code, height=470)
+    # Увеличиваем ширину до 720 (ширина canvas 700 + отступы) 
+    # и включаем скроллинг на случай узких экранов
+    return components.html(html_code, width=720, height=470, scrolling=True)
+

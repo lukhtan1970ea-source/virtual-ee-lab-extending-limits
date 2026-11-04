@@ -30,7 +30,12 @@ with tab1:
     col1, col2 = st.columns([2, 1])
     with col1:
         # Наш роскошный интерактивный стенд без желтых окон!
-        interactive_bench("stage1", key="bench_s1")
+        # Было:
+        # interactive_bench("stage1", key="bench_s1")
+
+        # Стало (передаем значение r1_val):
+        interactive_bench("stage1", r1_val, key="bench_s1")
+
     
     with col2:
         st.markdown("#### 📟 Контрольна панель вимірювань")
@@ -63,7 +68,12 @@ with tab2:
     st.markdown("### Складіть схему з шунтом за Рис. 1.7")
     col1, col2 = st.columns([2, 1])
     with col1:
-        interactive_bench("stage2", key="bench_s2")
+        # Было:
+        # interactive_bench("stage1", key="bench_s1")
+
+        # Стало (передаем значение r2_val):
+        interactive_bench("stage2", r2_val, key="bench_s2")
+
     
     with col2:
         st.markdown("#### 📟 Контрольна панель вимірювань")
@@ -100,7 +110,12 @@ with tab3:
     st.markdown("### Складіть схему для вольтметра за Рис. 1.8")
     col1, col2 = st.columns([2, 1])
     with col1:
-        interactive_bench("stage3", key="bench_s3")
+        # Было:
+        # interactive_bench("stage1", key="bench_s1")
+
+        # Стало (передаем значение r1_val):
+        interactive_bench("stage2", r2_val, key="bench_s2")
+
     
     with col2:
         st.markdown("#### 📟 Контрольна панель вимірювань")

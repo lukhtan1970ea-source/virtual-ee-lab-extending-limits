@@ -68,19 +68,17 @@ with tab1:
 # ВКЛАДКА 2
 with tab2:
     st.markdown("### Складіть схему з шунтом за Рис. 1.7")
+    
+    # 1. СНАЧАЛА создаем ползунок (обязательно ДО интерактивного стенда!)
     r1_val_s2 = st.slider("🎛️ Ручка потенціометра R1 (Ом)", 0, 1000, 500, key="r1_s2")
+    
     col1, col2 = st.columns([2, 1])
     with col1:
-        # Было:
-        # interactive_bench("stage1", key="bench_s1")
-
-        # Стало (передаем значение r2_val):
-        interactive_bench("stage2", r2_val, key="bench_s2")
-
+        # 2. Передаем именно ТОТ ползунок, который объявили выше
+        interactive_bench("stage2", r1_val_s2, key="bench_s2")
     
     with col2:
         st.markdown("#### 📟 Контрольна панель вимірювань")
-        #r1_val_s2 = st.slider("🎛️ Ручка потенціометра R1 (Ом)", 0, 1000, 500, key="r1_s2")
         is_wire_correct_s2 = st.checkbox("⚙️ Шунт підключено паралельно мікроамперметру", value=False)
         
         st.markdown("---")
@@ -108,22 +106,21 @@ with tab2:
             st.session_state.data_stage2 = pd.concat([st.session_state.data_stage2, new_row], ignore_index=True)
         st.dataframe(st.session_state.data_stage2, use_container_width=True)
 
+
 # ВКЛАДКА 3
 with tab3:
     st.markdown("### Складіть схему для вольтметра за Рис. 1.8")
+    
+    # 1. СНАЧАЛА создаем ползунок!
     r1_val_s3 = st.slider("🎛️ Ручка потенціометра R1 (Ом)", 0, 3000, 1500, key="r1_s3")
+    
     col1, col2 = st.columns([2, 1])
     with col1:
-        # Было:
-        # interactive_bench("stage1", key="bench_s1")
-
-        # Стало (передаем значение r1_val):
-        interactive_bench("stage2", r2_val, key="bench_s2")
-
+        # 2. Передаем переменную r1_val_s3 на стенд
+        interactive_bench("stage3", r1_val_s3, key="bench_s3")
     
     with col2:
         st.markdown("#### 📟 Контрольна панель вимірювань")
-        #r1_val_s3 = st.slider("🎛️ Ручка потенціометра R1 (Ом)", 0, 3000, 1500, key="r1_s3")
         is_wire_correct_s3 = st.checkbox("⚙️ Добавочний R2 підключено послідовно, ЕП — паралельно", value=False)
         
         st.markdown("---")

@@ -19,27 +19,30 @@ const canvas = document.getElementById('benchCanvas'); const ctx = canvas.getCon
 let currentStage = window.name.includes("bench_s2") ? "stage2" : (window.name.includes("bench_s3") ? "stage3" : "stage1");
 
 let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
+let knob = { x: 150, y: 320, r: 25, value: 0.0, angle: -Math.PI * 0.75, isDragging: false };
 
-// Линейное значение ручки от 0.0 (минимум) до 1.0 (максимум тока), угол только для отрисовки
-let knob = { x: 150, y: 320, r: 25, value: 0.0, angle: -Math.PI * 0.75, isDragging: false, startX: 0, startY: 0 };
-
+// Новая, выверенная сетка клемм (аккуратно разнесены под приборы)
 const terminals = [
-    { id: "source_plus", name: "Джерело +", x: 50, y: 60, r: 8, color: "#FF4B4B" },
-    { id: "source_minus", name: "Джерело -", x: 50, y: 120, r: 8, color: "#1E1E1E" },
-    { id: "ua_plus", name: "μA +", x: 320, y: 60, r: 8, color: "#FF4B4B" },
-    { id: "ua_minus", name: "μA -", x: 380, y: 60, r: 8, color: "#1E1E1E" },
-    { id: "ep_in", name: "ЕП Вхід", x: 560, y: 100, r: 8, color: "#FFA500" },
-    { id: "ep_com", name: "ЕП Спільний", x: 620, y: 100, r: 8, color: "#1E1E1E" },
-    { id: "r2_1", name: "R2 контакт 1", x: 340, y: 220, r: 8, color: "#666" },
-    { id: "r2_2", name: "R2 contact 2", x: 420, y: 220, r: 8, color: "#666" },
-    { id: "r1_top", name: "R1`  Верх", x: 110, y: 280, r: 6, color: "#666" },
-    { id: "r1_bot", name: "R1`  Ниж", x: 190, y: 280, r: 6, color: "#666" },
-    { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 250, r: 6, color: "#32CD32" }
+    { id: "source_plus", name: "Джерело +", x: 45, y: 75, r: 8, color: "#FF4B4B" },
+    { id: "source_minus", name: "Джерело -", x: 115, y: 75, r: 8, color: "#1E1E1E" },
+    
+    { id: "ua_plus", name: "μA +", x: 310, y: 135, r: 8, color: "#FF4B4B" },
+    { id: "ua_minus", name: "μA -", x: 380, y: 135, r: 8, color: "#1E1E1E" },
+    
+    { id: "ep_in", name: "ЕП Вхід", x: 550, y: 135, r: 8, color: "#FFA500" },
+    { id: "ep_com", name: "ЕП Спільний", x: 650, y: 135, r: 8, color: "#1E1E1E" },
+    
+    { id: "r2_1", name: "R2 вхід", x: 320, y: 220, r: 8, color: "#666" },
+    { id: "r2_2", name: "R2 вихід", x: 440, y: 220, r: 8, color: "#666" },
+    
+    { id: "r1_top", name: "R1 Верх", x: 80, y: 245, r: 6, color: "#666" },
+    { id: "r1_bot", name: "R1 Ниж", x: 220, y: 245, r: 6, color: "#666" },
+    { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 220, r: 6, color: "#32CD32" }
 ];
 
 if (currentStage === "stage2") {
-    terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
-    terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_1", name: "Rш +", x: 310, y: 180, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_2", name: "Rш -", x: 380, y: 180, r: 8, color: "#8B008B" });
 }
 
 function hasWire(t1, t2) {
@@ -48,10 +51,7 @@ function hasWire(t1, t2) {
 
 function sendDataToStreamlit(vals) {
     window.parent.postMessage({
-        type: "LAB_UPDATE",
-        stage: currentStage,
-        n: vals.n,
-        val: vals.I_ep
+        type: "LAB_UPDATE", stage: currentStage, n: vals.n, val: vals.I_ep
     }, "*");
 }
 function isConnectedInside(t1, t2) {
@@ -96,72 +96,76 @@ function getCircuitValues() {
     
     if (!has_power || !is_closed) return { I_ep: 0, n: 0, mode: currentStage === "stage3" ? "mV" : "μA" };
 
-    // knob.value меняется строго линейно от 0.0 до 1.0
     let factor = knob.value; 
 
     if (currentStage === "stage1") {
-        // Идеально равномерное изменение тока строго от 0.0 до 65.0 мкА (зашкал после 50)
-        let I = factor * 65.0; 
+        // Ток растет круто и уходит в зашкал (250 мкА), отметку 50 пробивает мгновенно
+        let I = factor * 250.0; 
         return { I_ep: I, n: I, mode: "μA" };
     } 
     else if (currentStage === "stage2") {
         const has_shunt = hasWire("ua_plus", "rsh_1") && hasWire("ua_minus", "rsh_2");
-        if (!has_shunt) return { I_ep: 0, n: 0, mode: "μA" };
-        
-        // С шунтом предел расширен в 10 раз (до 500-600 мкА), ток идет равномерно
-        let total_I = factor * 550.0;
-        let I_micro = total_I / 10.0; // На прибор идет в 10 раз меньше
+        if (!has_shunt) {
+            // Без шунта схема ведет себя как на 1 этапе и сразу зашкаливает
+            let I = factor * 250.0;
+            return { I_ep: I, n: I, mode: "μA" };
+        }
+        // С шунтом предел расширяется в 10 раз, прибор защищен
+        let total_I = factor * 500.0;
+        let I_micro = total_I / 10.0; 
         return { I_ep: total_I, n: I_micro, mode: "μA" };
     } 
     else { // stage3
-        // Для вольтметра: напряжение равномерно растет от 0 до 250 мВ
         let U_mv = factor * 250.0;
-        let n_div = U_mv / 5.0; // 250 мВ / 5 = 50 делений шкалы
+        let n_div = U_mv / 5.0; 
         return { I_ep: U_mv, n: n_div, mode: "mV" };
     }
 }
 function drawMicroampermeter(n_val) {
-    ctx.fillStyle = "#2B2B2B"; ctx.fillRect(260, 15, 170, 130); ctx.strokeRect(260, 15, 170, 130);
-    ctx.fillStyle = "#FFFDD0"; ctx.fillRect(270, 20, 150, 95); 
+    ctx.fillStyle = "#2B2B2B"; ctx.fillRect(260, 15, 170, 110); ctx.strokeRect(260, 15, 170, 110);
+    ctx.fillStyle = "#FFFDD0"; ctx.fillRect(270, 20, 150, 80); 
     
-    ctx.beginPath(); ctx.arc(345, 135, 95, -Math.PI * 0.78, -Math.PI * 0.22);
+    ctx.beginPath(); ctx.arc(345, 115, 80, -Math.PI * 0.78, -Math.PI * 0.22);
     ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5; ctx.stroke();
 
-    ctx.fillStyle = "#000"; ctx.font = "10px 'Courier New'"; ctx.textAlign = "center";
+    ctx.fillStyle = "#000"; ctx.font = "9px 'Courier New'"; ctx.textAlign = "center";
     for (let i = 0; i <= 50; i += 5) {
         let angle = -Math.PI * 0.75 + (i / 50.0) * (Math.PI * 0.5);
         let isMajor = (i % 10 === 0);
-        let len = isMajor ? 8 : 4;
-        let x1 = 345 + 95 * Math.cos(angle); let y1 = 135 + 95 * Math.sin(angle);
-        let x2 = 345 + (95 - len) * Math.cos(angle); let y2 = 135 + (95 - len) * Math.sin(angle);
+        let len = isMajor ? 6 : 3;
+        let x1 = 345 + 80 * Math.cos(angle); let y1 = 115 + 80 * Math.sin(angle);
+        let x2 = 345 + (80 - len) * Math.cos(angle); let y2 = 115 + (80 - len) * Math.sin(angle);
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
         if (isMajor) {
-            let tx = 345 + 80 * Math.cos(angle); let ty = 135 + 80 * Math.sin(angle);
+            let tx = 345 + 68 * Math.cos(angle); let ty = 115 + 68 * Math.sin(angle);
             ctx.fillText(i, tx, ty);
         }
     }
-    ctx.font = "bold 14px Arial"; ctx.fillText("μА", 345, 95);
+    ctx.font = "bold 12px Arial"; ctx.fillText("μА", 345, 85);
 
     let targetAngle = -Math.PI * 0.75 + (n_val / 50.0) * (Math.PI * 0.5);
     if (targetAngle < -Math.PI * 0.78) targetAngle = -Math.PI * 0.78; 
     if (targetAngle > -Math.PI * 0.20) targetAngle = -Math.PI * 0.20; 
 
-    let sx = 345 + 92 * Math.cos(targetAngle); let sy = 135 + 92 * Math.sin(targetAngle);
-    ctx.beginPath(); ctx.moveTo(345, 125); ctx.lineTo(sx, sy);
+    let sx = 345 + 78 * Math.cos(targetAngle); let sy = 115 + 78 * Math.sin(targetAngle);
+    ctx.beginPath(); ctx.moveTo(345, 105); ctx.lineTo(sx, sy);
     ctx.strokeStyle = "#FF0000"; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.beginPath(); ctx.arc(345, 125, 4, 0, 2 * Math.PI); ctx.fillStyle = "#000"; ctx.fill();
+    ctx.beginPath(); ctx.arc(345, 105, 3, 0, 2 * Math.PI); ctx.fillStyle = "#000"; ctx.fill();
 }
 
 function drawBench() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const vals = getCircuitValues();
 
-    ctx.fillStyle = "#EAEAEA"; ctx.fillRect(20, 20, 120, 130); ctx.strokeStyle = "#333"; ctx.strokeRect(20, 20, 120, 130);
+    // 1. Джерело живлення
+    ctx.fillStyle = "#EAEAEA"; ctx.fillRect(20, 15, 120, 110); ctx.strokeStyle = "#333"; ctx.strokeRect(20, 15, 120, 110);
     ctx.fillStyle = "#333"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText("Джерело =5V", 35, 40);
 
+    // 2. Мікроамперметр
     drawMicroampermeter(vals.n);
 
-    ctx.fillStyle = "#222222"; ctx.fillRect(520, 15, 160, 130); ctx.strokeStyle = "#333"; ctx.strokeRect(520, 15, 160, 130);
+    // 3. Вольтметр В7-21А
+    ctx.fillStyle = "#222222"; ctx.fillRect(520, 15, 160, 110); ctx.strokeStyle = "#333"; ctx.strokeRect(520, 15, 160, 110);
     ctx.fillStyle = "#0A0A0A"; ctx.fillRect(530, 25, 140, 45);
     ctx.fillStyle = "#888"; ctx.font = "bold 9px Arial"; ctx.fillText("В7-21А МУЛЬТИМЕТР", 535, 20);
     
@@ -169,14 +173,13 @@ function drawBench() {
     ctx.fillText(vals.I_ep.toFixed(vals.mode === "μA" ? 2 : 1), 640, 55);
     ctx.font = "10px Arial"; ctx.fillText(vals.mode, 665, 52);
 
-    ctx.beginPath(); ctx.arc(550, 100, 12, 0, 2 * Math.PI); ctx.fillStyle = "#444"; ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(610, 100, 12, 0, 2 * Math.PI); ctx.fillStyle = "#444"; ctx.fill(); ctx.stroke();
+    // 4. Резистор R2
+    ctx.fillStyle = "#DEB887"; ctx.fillRect(310, 205, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(310, 205, 140, 40);
+    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("Резистор R2 = 4 кОм", 380, 230);
 
-    ctx.fillStyle = "#DEB887"; ctx.fillRect(330, 195, 100, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(330, 195, 100, 40);
-    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("R2 = 4 кОм", 380, 220);
-
+    // 5. Потенціометр R1
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);
-    ctx.fillStyle = "#333"; ctx.fillText("Потенціометр R1", 150, 215);
+    ctx.fillStyle = "#333"; ctx.fillText("Потенціометр R1", 150, 212);
 
     ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI);
     ctx.fillStyle = "#555"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.stroke();
@@ -184,9 +187,10 @@ function drawBench() {
     ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle));
     ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke();
 
+    // 6. Опір Шунта (якщо Етап 2)
     if (currentStage === "stage2") {
-        ctx.fillStyle = "#9370DB"; ctx.fillRect(310, 115, 90, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(310, 115, 90, 30);
-        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.fillText("Шунт Rш", 355, 133);
+        ctx.fillStyle = "#9370DB"; ctx.fillRect(300, 155, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(300, 155, 160, 30);
+        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 173);
     }
 
     terminals.forEach(t => {
@@ -254,3 +258,4 @@ setInterval(drawBench, 100);
 </script>
 </body>
 </html>
+

@@ -10,7 +10,7 @@
 </head>
 <body>
 <div id="canvas-container">
-    <canvas id="benchCanvas" width="700" height="400"></canvas>
+    <canvas id="benchCanvas" width="700" height="400" tabindex="1"></canvas>
     <div><button id="clearBtn">🧹 Очистити всі дроти</button></div>
 </div>
 <script>
@@ -19,9 +19,10 @@ const canvas = document.getElementById('benchCanvas'); const ctx = canvas.getCon
 let currentStage = window.name.includes("bench_s2") ? "stage2" : (window.name.includes("bench_s3") ? "stage3" : "stage1");
 
 let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
+
+// Инициализируем ручку: value от 0.0 до 1.0. Начальный угол выставлен на левый стопор
 let knob = { x: 150, y: 320, r: 25, value: 0.0, angle: -Math.PI * 0.75, isDragging: false };
 
-// Новая, выверенная сетка клемм (аккуратно разнесены под приборы)
 const terminals = [
     { id: "source_plus", name: "Джерело +", x: 45, y: 75, r: 8, color: "#FF4B4B" },
     { id: "source_minus", name: "Джерело -", x: 115, y: 75, r: 8, color: "#1E1E1E" },
@@ -99,18 +100,15 @@ function getCircuitValues() {
     let factor = knob.value; 
 
     if (currentStage === "stage1") {
-        // Ток растет круто и уходит в зашкал (250 мкА), отметку 50 пробивает мгновенно
         let I = factor * 250.0; 
         return { I_ep: I, n: I, mode: "μA" };
     } 
     else if (currentStage === "stage2") {
         const has_shunt = hasWire("ua_plus", "rsh_1") && hasWire("ua_minus", "rsh_2");
         if (!has_shunt) {
-            // Без шунта схема ведет себя как на 1 этапе и сразу зашкаливает
             let I = factor * 250.0;
             return { I_ep: I, n: I, mode: "μA" };
         }
-        // С шунтом предел расширяется в 10 раз, прибор защищен
         let total_I = factor * 500.0;
         let I_micro = total_I / 10.0; 
         return { I_ep: total_I, n: I_micro, mode: "μA" };
@@ -157,14 +155,14 @@ function drawBench() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const vals = getCircuitValues();
 
-    // 1. Джерело живлення
+    // Пересчитываем визуальный угол ручки на основе ее значения [0.0 ... 1.0] с учетом стопора в 270 градусов
+    knob.angle = -Math.PI * 0.75 + knob.value * (Math.PI * 1.5);
+
     ctx.fillStyle = "#EAEAEA"; ctx.fillRect(20, 15, 120, 110); ctx.strokeStyle = "#333"; ctx.strokeRect(20, 15, 120, 110);
     ctx.fillStyle = "#333"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText("Джерело =5V", 35, 40);
 
-    // 2. Мікроамперметр
     drawMicroampermeter(vals.n);
 
-    // 3. Вольтметр В7-21А
     ctx.fillStyle = "#222222"; ctx.fillRect(520, 15, 160, 110); ctx.strokeStyle = "#333"; ctx.strokeRect(520, 15, 160, 110);
     ctx.fillStyle = "#0A0A0A"; ctx.fillRect(530, 25, 140, 45);
     ctx.fillStyle = "#888"; ctx.font = "bold 9px Arial"; ctx.fillText("В7-21А МУЛЬТИМЕТР", 535, 20);
@@ -173,21 +171,19 @@ function drawBench() {
     ctx.fillText(vals.I_ep.toFixed(vals.mode === "μA" ? 2 : 1), 640, 55);
     ctx.font = "10px Arial"; ctx.fillText(vals.mode, 665, 52);
 
-    // 4. Резистор R2
     ctx.fillStyle = "#DEB887"; ctx.fillRect(310, 205, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(310, 205, 140, 40);
     ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("Резистор R2 = 4 кОм", 380, 230);
 
-    // 5. Потенціометр R1
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);
     ctx.fillStyle = "#333"; ctx.fillText("Потенціометр R1", 150, 212);
 
+    // Ручка потенциометра
     ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI);
     ctx.fillStyle = "#555"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(knob.x, knob.y);
     ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle));
     ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke();
 
-    // 6. Опір Шунта (якщо Етап 2)
     if (currentStage === "stage2") {
         ctx.fillStyle = "#9370DB"; ctx.fillRect(300, 155, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(300, 155, 160, 30);
         ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 173);
@@ -219,7 +215,22 @@ function updateCursor(x, y) {
     canvas.style.cursor = hover ? "pointer" : "default";
 }
 
+// ⌨️ ТОНКАЯ РЕГУЛИРОВКА СТРЕЛКАМИ КЛАВИАТУРЫ (Шаг 1%)
+window.addEventListener('keydown', (e) => {
+    if (document.activeElement !== canvas) return; // Работает только когда фокус на холсте
+    if (e.key === "ArrowLeft") {
+        knob.value = Math.max(knob.value - 0.01, 0.0);
+        drawBench(); sendDataToStreamlit(getCircuitValues());
+        e.preventDefault();
+    } else if (e.key === "ArrowRight") {
+        knob.value = Math.min(knob.value + 0.01, 1.0);
+        drawBench(); sendDataToStreamlit(getCircuitValues());
+        e.preventDefault();
+    }
+});
+
 canvas.addEventListener('mousedown', (e) => {
+    canvas.focus(); // Активируем фокус клавиатуры при клике на холст
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
     if (Math.hypot(x - knob.x, y - knob.y) < knob.r) { knob.isDragging = true; return; }
@@ -232,8 +243,12 @@ canvas.addEventListener('mousemove', (e) => {
     updateCursor(mouseX, mouseY);
     if (knob.isDragging) {
         let rawAngle = Math.atan2(mouseY - knob.y, mouseX - knob.x);
-        knob.angle = rawAngle;
-        let norm = (rawAngle + Math.PI) / (2 * Math.PI);
+        
+        // Математический стопор: переводим [-pi ... pi] в сектор 270 градусов
+        let norm = (rawAngle + Math.PI * 0.75) / (Math.PI * 1.5);
+        if (norm < 0 && norm > -0.2) norm = 0;
+        if (norm > 1 || norm <= -0.2) norm = 1;
+        
         knob.value = Math.min(Math.max(norm, 0), 1);
         drawBench(); sendDataToStreamlit(getCircuitValues());
     } else if (isDrawing) {
@@ -258,4 +273,3 @@ setInterval(drawBench, 100);
 </script>
 </body>
 </html>
-

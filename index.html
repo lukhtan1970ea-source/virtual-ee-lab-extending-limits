@@ -20,8 +20,8 @@ let currentStage = window.name.includes("bench_s2") ? "stage2" : (window.name.in
 
 let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
 
-// Возвращаем круговое вращение ручки (angle)
-let knob = { x: 150, y: 320, r: 25, angle: -Math.PI/2, isDragging: false };
+// Начальный угол ручки направлен влево (минимальный ток)
+let knob = { x: 150, y: 320, r: 25, angle: -Math.PI, isDragging: false };
 
 const terminals = [
     { id: "source_plus", name: "Джерело +", x: 50, y: 60, r: 8, color: "#FF4B4B" },
@@ -91,22 +91,26 @@ function checkCircuitConnected() {
 }
 
 function getCircuitValues() {
-    // Преобразуем круговой угол [-pi, pi] в нормализованный фактор сопротивления [0, 1]
+    // Переводим угол ручки [-pi, pi] в чистый коэффициент от 0.0 до 1.0
     let r1_factor = (knob.angle + Math.PI) / (2 * Math.PI);
     if (r1_factor < 0) r1_factor = 0;
     if (r1_factor > 1) r1_factor = 1;
 
-    // Вводим добавочное сопротивление схемы, чтобы ток находился в пределах шкалы микроамперметра
-    let r1_actual = r1_factor * (currentStage === "stage1" ? 100000.0 : (currentStage === "stage2" ? 10000.0 : 30000.0));
+    // Инвертируем, чтобы вращение по часовой стрелке уменьшало опір и увеличивало ток
+    let r1_inverted = 1.0 - r1_factor;
+
+    // Задаем большой диапазон для потенциометра, чтобы ток падал почти до нуля
+    let r1_actual = r1_inverted * 500000.0; 
+    
     const has_power = hasWire("source_plus", "r1_top") && hasWire("source_minus", "r1_bot");
     const is_closed = checkCircuitConnected();
     
     if (!has_power || !is_closed) return { I_ep: 0, n: 0, mode: currentStage === "stage3" ? "mV" : "μA" };
 
     if (currentStage === "stage1") {
-        // Базовое сопротивление увеличено для защиты от зашкаливания
-        const total_R = 1000.0 + 4000.0 + r1_actual + 95000.0; 
-        const I = (5.0 / total_R) * 1e6; 
+        const total_R = 1000.0 + 4000.0 + r1_actual;
+        const I = (5.0 / total_R) * 1e6; // Ток в мкА
+        // n — деления. При r1_actual -> 0, ток станет 1000 мкА, стрелка уйдет далеко за 50
         return { I_ep: I, n: I, mode: "μA" };
     } 
     else if (currentStage === "stage2") {
@@ -114,7 +118,7 @@ function getCircuitValues() {
         if (!has_shunt) return { I_ep: 0, n: 0, mode: "μA" };
         
         const R_parallel = (1000.0 * 111.11) / (1000.0 + 111.11);
-        const total_R = R_parallel + 4000.0 + r1_actual + 5000.0;
+        const total_R = R_parallel + 4000.0 + (r1_inverted * 50000.0); // Меньший предел для шунта
         const total_I = (5.0 / total_R) * 1e6;
         const I_micro = total_I * (111.11 / (1000.0 + 111.11));
         
@@ -122,7 +126,7 @@ function getCircuitValues() {
     } 
     else { // stage3
         const R_voltmeter = 1000.0 + 4000.0;
-        const total_R = r1_actual + R_voltmeter + 1000.0;
+        const total_R = (r1_inverted * 150000.0) + R_voltmeter;
         const I = 5.0 / total_R;
         const U_mv = (I * R_voltmeter) * 1000.0;
         return { I_ep: U_mv, n: I * 1e6, mode: "mV" };
@@ -151,9 +155,10 @@ function drawMicroampermeter(n_val) {
     }
     ctx.font = "bold 14px Arial"; ctx.fillText("μА", 345, 95);
 
+    // Расчет угла стрелки с жестким ограничением упоров (физический максимум отклонения)
     let targetAngle = -Math.PI * 0.75 + (n_val / 50.0) * (Math.PI * 0.5);
-    if (targetAngle < -Math.PI * 0.78) targetAngle = -Math.PI * 0.78;
-    if (targetAngle > -Math.PI * 0.22) targetAngle = -Math.PI * 0.22;
+    if (targetAngle < -Math.PI * 0.78) targetAngle = -Math.PI * 0.78; // Левый упор (чуть ниже нуля)
+    if (targetAngle > -Math.PI * 0.20) targetAngle = -Math.PI * 0.20; // Правый упор (за шкалой 50)
 
     let sx = 345 + 92 * Math.cos(targetAngle); let sy = 135 + 92 * Math.sin(targetAngle);
     ctx.beginPath(); ctx.moveTo(345, 125); ctx.lineTo(sx, sy);
@@ -217,7 +222,6 @@ function drawBench() {
     }
 }
 
-// Проверка наведения на интерактивные элементы для изменения вида курсора
 function updateCursor(x, y) {
     let hoverElement = false;
     if (Math.hypot(x - knob.x, y - knob.y) < knob.r) hoverElement = true;
@@ -266,5 +270,6 @@ canvas.addEventListener('mouseup', (e) => {
 clearBtn.addEventListener('click', () => { wires = []; drawBench(); sendDataToStreamlit({I_ep: 0, n: 0, mode: "μA"}); });
 setInterval(drawBench, 100);
 </script>
-</body>
-</html>
+<FollowUp>
+Сохраните изменения и проверьте симулятор. **При выкручивании ручки влево ток падает к нулю, а вправо — плавно увеличивается вплоть до зашкаливания за отметку 50 делений?** Напишите, как теперь ведут себя приборы!
+</FollowUp>

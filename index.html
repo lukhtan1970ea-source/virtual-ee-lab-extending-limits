@@ -15,7 +15,9 @@
 </div>
 <script>
 const canvas = document.getElementById('benchCanvas'); const ctx = canvas.getContext('2d'); const clearBtn = document.getElementById('clearBtn');
-let currentStage = 'stage1';
+
+// АВТОМАТИЧНЕВИЗНАЧЕННЯ ЕТАПУ З СТРІМЛІТ КЛЮЧА
+let currentStage = window.name.includes("bench_s2") ? "stage2" : (window.name.includes("bench_s3") ? "stage3" : "stage1");
 
 let wires = []; let activeTerminal = null; let mouseX = 0; let mouseY = 0; let isDrawing = false;
 let knob = { x: 150, y: 320, r: 25, angle: -Math.PI/2, isDragging: false };
@@ -29,23 +31,31 @@ const terminals = [
     { id: "ep_com", name: "ЕП Спільний", x: 620, y: 100, r: 8, color: "#1E1E1E" },
     { id: "r2_1", name: "R2 контакт 1", x: 340, y: 220, r: 8, color: "#666" },
     { id: "r2_2", name: "R2 contact 2", x: 420, y: 220, r: 8, color: "#666" },
-    { id: "r1_top", name: "R1`  Верх", x: 110, y: 280, r: 6, color: "#666" },
-    { id: "r1_bot", name: "R1`  Ниж", x: 190, y: 280, r: 6, color: "#666" },
+    { id: "r1_top", name: "R1` Верх", x: 110, y: 280, r: 6, color: "#666" },
+    { id: "r1_bot", name: "R1` Ниж", x: 190, y: 280, r: 6, color: "#666" },
     { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 250, r: 6, color: "#32CD32" }
 ];
 
-if (currentStage === "stage2" || window.location.search.includes("stage2")) {
-    if (!terminals.some(t => t.id === "rsh_1")) {
-        terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
-        terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
-    }
+if (currentStage === "stage2") {
+    terminals.push({ id: "rsh_1", name: "Rш контакт 1", x: 320, y: 140, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_2", name: "Rш контакт 2", x: 380, y: 140, r: 8, color: "#8B008B" });
 }
 
 function hasWire(t1, t2) {
     return wires.some(w => (w.from.id === t1 && w.to.id === t2) || (w.from.id === t2 && w.to.id === t1));
 }
+
+function sendDataToStreamlit(vals) {
+    // Передаємо покази приладів у батьківське вікно Streamlit в реальному часі
+    window.parent.postMessage({
+        type: "LAB_UPDATE",
+        stage: currentStage,
+        n: vals.n,
+        val: vals.I_ep
+    }, "*");
+}
 function getCircuitValues() {
-    // Преобразуем угол поворота ручки (от -pi до pi) в линейный коэффициент от 0 до 1
+    // Вычисляем линейный коэффициент от 0 до 1 в зависимости от угла ручки
     let normAngle = (knob.angle + Math.PI) / (2 * Math.PI);
     if (normAngle < 0) normAngle = 0;
     if (normAngle > 1) normAngle = 1;
@@ -206,6 +216,7 @@ canvas.addEventListener('mousemove', (e) => {
     if (knob.isDragging) {
         knob.angle = Math.atan2(mouseY - knob.y, mouseX - knob.x);
         drawBench();
+        sendDataToStreamlit(getCircuitValues());
     } else if (isDrawing) {
         drawBench();
     }
@@ -219,13 +230,15 @@ canvas.addEventListener('mouseup', (e) => {
         if (t !== activeTerminal && Math.hypot(mouseX - t.x, mouseY - t.y) < t.r + 4) {
             if (!hasWire(activeTerminal.id, t.id)) {
                 wires.push({ from: activeTerminal, to: t });
+                drawBench();
+                sendDataToStreamlit(getCircuitValues());
             }
         }
     });
     activeTerminal = null; drawBench();
 });
 
-clearBtn.addEventListener('click', () => { wires = []; drawBench(); });
+clearBtn.addEventListener('click', () => { wires = []; drawBench(); sendDataToStreamlit({I_ep: 0, n: 0, mode: "μA"}); });
 setInterval(drawBench, 100);
 </script>
 </body>

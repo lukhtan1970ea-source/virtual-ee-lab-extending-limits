@@ -2,21 +2,21 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os
 
-def interactive_bench(stage_name, key=None):
+def interactive_bench(stage_name, r1_value, key=None):
     """
-    Абсолютно стабільний компонент. Лежить у корені, тому немає конфліктів.
+    Стабільний компонент. Передає значення опору R1 з повзунка Streamlit всередину JS.
     """
-    # Знаходимо index.html прямо у корені поруч
     current_dir = os.path.dirname(os.path.abspath(__file__))
     html_path = os.path.join(current_dir, "index.html")
     
     with open(html_path, "r", encoding="utf-8") as f:
         html_code = f.read()
     
-    # Передаємо назву вкладки всередину JS коду за допомогою простої заміни тексту
+    # Внедряем выбранную стадию и текущее значение сопротивления R1
     html_code = html_code.replace("let currentStage = 'stage1';", f"let currentStage = '{stage_name}';")
     html_code = html_code.replace("let currentStage = urlParams.get('stage') || 'stage1';", f"let currentStage = '{stage_name}';")
+    
+    # Динамически передаем реальное значение R1 из слайдера в JS-переменную
+    html_code = html_code.replace("let r1_from_streamlit = 2500;", f"let r1_from_streamlit = {r1_value};")
 
-    # Рендеримо HTML всередині безпечного iFrame
     return components.html(html_code, height=470)
-

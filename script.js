@@ -183,9 +183,9 @@ function drawBench() {
     ctx.fillText(vals.I_ep.toFixed(vals.mode === "μA" ? 2 : 1), 640, 55);
     ctx.font = "10px Arial"; ctx.fillText(vals.mode, 665, 52);
 
-    // 4. Резистор R2
-    ctx.fillStyle = "#DEB887"; ctx.fillRect(310, 205, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(310, 205, 140, 40);
-    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("Резистор R2 = 4 кОм", 380, 230);
+    // 4. Резистор R2 (Зсунутий нижче на y: 220)
+    ctx.fillStyle = "#DEB887"; ctx.fillRect(310, 220, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(310, 220, 140, 40);
+    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("Резистор R2 = 4 кОм", 380, 245);
 
     // 5. Потенціометр R1
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);
@@ -197,25 +197,31 @@ function drawBench() {
     ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle));
     ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke();
 
-    // 6. Опір Шунта (якщо Етап 2)
+    // 6. Опір Шунта (Зсунутий нижче на y: 170)
     if (currentStage === "stage2") {
-        ctx.fillStyle = "#9370DB"; ctx.fillRect(300, 155, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(300, 155, 160, 30);
-        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 173);
+        ctx.fillStyle = "#9370DB"; ctx.fillRect(300, 170, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(300, 170, 160, 30);
+        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 188);
     }
 
-    // ВІЗУАЛІЗАЦІЯ КЛЕМ ТА ЇХ ПІДПИСІВ БЕЗ НАКЛАДАННЯ
+    // ВІЗУАЛІЗАЦІЯ КЛЕМ ТА ЇХ ПІДПИСІВ З БОКОВИМ РОЗВЕДЕННЯМ ДЛЯ ШУНТА
     terminals.forEach(t => {
         ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 2 * Math.PI);
         ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke();
         
-        ctx.fillStyle = "#1E1E1E"; ctx.font = "bold 9px monospace"; ctx.textAlign = "center";
+        ctx.fillStyle = "#1E1E1E"; ctx.font = "bold 9px monospace";
         
-        // Умный сдвиг текста в зависимости от вертикального положения клеммы
-        if (t.y < 150) {
-            // Для верхнего ряда приборов сдвигаем текст вниз под клемму
+        // Індивідуальні правила зсуву тексту для кожної групи клем
+        if (t.id === "rsh_1") {
+            ctx.textAlign = "right";
+            ctx.fillText(t.name, t.x - t.r - 4, t.y + 3);
+        } else if (t.id === "rsh_2") {
+            ctx.textAlign = "left";
+            ctx.fillText(t.name, t.x + t.r + 4, t.y + 3);
+        } else if (t.y < 150) {
+            ctx.textAlign = "center";
             ctx.fillText(t.name, t.x, t.y + t.r + 11);
         } else {
-            // Для нижнего ряда элементов (R1, R2) сдвигаем текст вверх над клеммой
+            ctx.textAlign = "center";
             ctx.fillText(t.name, t.x, t.y - t.r - 4);
         }
     });

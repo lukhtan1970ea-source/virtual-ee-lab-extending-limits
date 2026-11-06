@@ -185,38 +185,38 @@ function drawBench() {
     ctx.fillText(vals.I_ep.toFixed(vals.mode === "μA" ? 2 : 1), 640, 55);
     ctx.font = "10px Arial"; ctx.fillText(vals.mode, 665, 52);
 
-    // 4. Резистор R2 (Зсунутий нижче на y: 220)
+    // 4. Резистор R2 (Тіло деталі акуратно між винесеними клемами)
     ctx.fillStyle = "#DEB887"; ctx.fillRect(310, 220, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(310, 220, 140, 40);
-    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("Резистор R2 = 4 кОм", 380, 245);
+    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("R2 = 4 кОм", 380, 244);
 
     // 5. Потенціометр R1
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);
-    ctx.fillStyle = "#333"; ctx.textAlign = "center"; ctx.fillText("Потенціометр R1", 150, 212);
+    ctx.fillStyle = "#333"; ctx.textAlign = "center"; ctx.fillText("R1", 150, 212);
 
     ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI);
-    ctx.fillStyle = "#555"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.stroke();
+    ctx.fillStyle = "#555"; fill(); ctx.strokeStyle = "#222"; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(knob.x, knob.y);
     ctx.lineTo(knob.x + knob.r * Math.cos(knob.angle), knob.y + knob.r * Math.sin(knob.angle));
     ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.stroke();
 
-    // 6. Опір Шунта (Зсунутий нижче на y: 170)
+    // 6. Опір Шунта (Тіло деталі акуратно між винесеними клемами на Етапі 2)
     if (currentStage === "stage2") {
         ctx.fillStyle = "#9370DB"; ctx.fillRect(300, 170, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(300, 170, 160, 30);
-        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 188);
+        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Rш = 111.11 Ом", 380, 188);
     }
 
-    // ВІЗУАЛІЗАЦІЯ КЛЕМ ТА ЇХ ПІДПИСІВ З БОКОВИМ РОЗВЕДЕННЯМ ДЛЯ ШУНТА
+    // ВІЗУАЛІЗАЦІЯ КЛЕМ ТА ЇХ ЧИСТИХ ПІДПИСІВ З ЗОВНІШНІХ БОКІВ
     terminals.forEach(t => {
         ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 2 * Math.PI);
         ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke();
         
         ctx.fillStyle = "#1E1E1E"; ctx.font = "bold 9px monospace";
         
-        // Індивідуальні правила зсуву тексту для кожної групи клем
-        if (t.id === "rsh_1") {
+        // Правила зсуву тексту для винесених бокових клем
+        if (t.id === "rsh_1" || t.id === "r2_1" || t.id === "r1_top") {
             ctx.textAlign = "right";
             ctx.fillText(t.name, t.x - t.r - 4, t.y + 3);
-        } else if (t.id === "rsh_2") {
+        } else if (t.id === "rsh_2" || t.id === "r2_2" || t.id === "r1_bot") {
             ctx.textAlign = "left";
             ctx.fillText(t.name, t.x + t.r + 4, t.y + 3);
         } else if (t.y < 150) {

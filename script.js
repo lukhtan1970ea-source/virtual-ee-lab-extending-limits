@@ -188,7 +188,7 @@ function drawBench() {
 
     // 5. Потенціометр R1
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);
-    ctx.fillStyle = "#333"; ctx.fillText("Потенціометр R1", 150, 212);
+    ctx.fillStyle = "#333"; ctx.textAlign = "center"; ctx.fillText("Потенціометр R1", 150, 212);
 
     ctx.beginPath(); ctx.arc(knob.x, knob.y, knob.r, 0, 2 * Math.PI);
     ctx.fillStyle = "#555"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.stroke();
@@ -199,16 +199,27 @@ function drawBench() {
     // 6. Опір Шунта (якщо Етап 2)
     if (currentStage === "stage2") {
         ctx.fillStyle = "#9370DB"; ctx.fillRect(300, 155, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(300, 155, 160, 30);
-        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 173);
+        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Шунт Rш = 111.11 Ом", 380, 173);
     }
 
+    // ВІЗУАЛІЗАЦІЯ КЛЕМ ТА ЇХ ПІДПИСІВ БЕЗ НАКЛАДАННЯ
     terminals.forEach(t => {
         ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 2 * Math.PI);
         ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke();
-        ctx.fillStyle = "#333"; ctx.font = "9px monospace"; ctx.textAlign = "center";
-        ctx.fillText(t.name, t.x, t.y - t.r - 3);
+        
+        ctx.fillStyle = "#1E1E1E"; ctx.font = "bold 9px monospace"; ctx.textAlign = "center";
+        
+        // Умный сдвиг текста в зависимости от вертикального положения клеммы
+        if (t.y < 150) {
+            // Для верхнего ряда приборов сдвигаем текст вниз под клемму
+            ctx.fillText(t.name, t.x, t.y + t.r + 11);
+        } else {
+            // Для нижнего ряда элементов (R1, R2) сдвигаем текст вверх над клеммой
+            ctx.fillText(t.name, t.x, t.y - t.r - 4);
+        }
     });
 
+    // Дроти
     wires.forEach(w => {
         ctx.beginPath(); ctx.moveTo(w.from.x, w.from.y);
         ctx.bezierCurveTo(w.from.x, w.from.y + 40, w.to.x, w.to.y + 40, w.to.x, w.to.y);

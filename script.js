@@ -15,6 +15,7 @@ let isDrawing = false;
 let knob = { x: 150, y: 320, r: 25, value: 0.0, angle: -Math.PI * 0.75, isDragging: false };
 
 // ОБНОВЛЕННАЯ СЕТКА КЛЕММ: Раздельный вход для Тока (I) и Напряжения (U)
+// Нова розведена по вертикалі сітка клем (нічого не наповзає)
 const terminals = [
     { id: "source_plus", name: "Джерело +", x: 45, y: 75, r: 8, color: "#FF4B4B" },
     { id: "source_minus", name: "Джерело -", x: 115, y: 75, r: 8, color: "#1E1E1E" },
@@ -22,23 +23,23 @@ const terminals = [
     { id: "ua_plus", name: "μA +", x: 310, y: 135, r: 8, color: "#FF4B4B" },
     { id: "ua_minus", name: "μA -", x: 380, y: 135, r: 8, color: "#1E1E1E" },
     
-    // Гнезда мультиметра В7-21А как на реальном приборе
     { id: "ep_in_u", name: "ЕП Вхід U", x: 540, y: 135, r: 8, color: "#FF8C00" },
     { id: "ep_in_i", name: "ЕП Вхід I", x: 600, y: 135, r: 8, color: "#FF4B4B" },
     { id: "ep_com", name: "ЕП Спільний (0)", x: 660, y: 135, r: 8, color: "#1E1E1E" },
     
-    { id: "r2_1", name: "R2 вхід", x: 320, y: 220, r: 8, color: "#666" },
-    { id: "r2_2", name: "R2 вихід", x: 440, y: 220, r: 8, color: "#666" },
+    // Опустили R2 нижче, звільняючи місце для шунта
+    { id: "r2_1", name: "R2 вхід", x: 320, y: 235, r: 8, color: "#666" },
+    { id: "r2_2", name: "R2 вихід", x: 440, y: 235, r: 8, color: "#666" },
     
     { id: "r1_top", name: "R1 Верх", x: 80, y: 245, r: 6, color: "#666" },
     { id: "r1_bot", name: "R1 Ниж", x: 220, y: 245, r: 6, color: "#666" },
     { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 220, r: 6, color: "#32CD32" }
 ];
 
-// Шунт появляется только на Этапе 2
+// Ідеальна висота для клем шунта (точно між приладом та R2)
 if (currentStage === "stage2") {
-    terminals.push({ id: "rsh_1", name: "Rш +", x: 310, y: 180, r: 8, color: "#8B008B" });
-    terminals.push({ id: "rsh_2", name: "Rш -", x: 380, y: 180, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_1", name: "Rш +", x: 310, y: 185, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_2", name: "Rш -", x: 380, y: 185, r: 8, color: "#8B008B" });
 }
 
 function hasWire(t1, t2) {

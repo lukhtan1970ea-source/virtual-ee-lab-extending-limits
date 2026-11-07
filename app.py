@@ -5,6 +5,26 @@ from canvas_bench import interactive_bench
 
 st.set_page_config(page_title="Віртуальна ЛР: Розширення меж приладів", layout="wide")
 st.title("🔌 Віртуальна лабораторна робота")
+
+# Блокування клавіатури ВИКЛЮЧНО для полів делінь шкали "n"
+st.markdown(
+    """
+    <style>
+    /* Шукаємо блок інпута, який стоїть одразу після заголовка зі словом "мікроамперметра" */
+    div[data-testid="stNumberInput"]:has(label:contains("мікроамперметра")) input {
+        pointer-events: none !important;
+        background-color: #f1f3f6 !important;
+        color: #4a4a4a !important;
+    }
+    /* Залишаємо бічні кнопочки плюс-мінус повністю клікабельними */
+    div[data-testid="stNumberInput"]:has(label:contains("мікроамперметра")) button {
+        pointer-events: auto !important;
+    }
+    </style>
+    """,
+    unsafe_allow_code=True
+)
+
 st.subheader("«Розширення меж вимірювання амперметра і вольтметра»")
 
 # Ініціалізація сесії для таблиць експерименту

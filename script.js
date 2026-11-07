@@ -287,15 +287,19 @@ function updateCursor(x, y) {
     canvas.style.cursor = hover ? "pointer" : "default";
 }
 
+// ⌨️ ЮВЕЛІРНА ТOНКА РЕГУЛЮВАННЯ СТРІЛКАМИ КЛАВИАТУРИ (Ультра-м'який крок 0.1%)
 window.addEventListener('keydown', (e) => {
-    if (document.activeElement !== canvas) return; 
+    if (document.activeElement !== canvas) return; // Працює тільки коли клікнули на холст
+    
     if (e.key === "ArrowLeft") {
-        knob.value = Math.max(knob.value - 0.01, 0.0);
-        drawBench(); sendDataToStreamlit(getCircuitValues());
+        knob.value = Math.max(knob.value - 0.001, 0.0); // Ювелірний крок назад
+        drawBench(); 
+        sendDataToStreamlit(getCircuitValues());
         e.preventDefault();
     } else if (e.key === "ArrowRight") {
-        knob.value = Math.min(knob.value + 0.01, 1.0);
-        drawBench(); sendDataToStreamlit(getCircuitValues());
+        knob.value = Math.min(knob.value + 0.001, 1.0); // Ювелірний крок вперед
+        drawBench(); 
+        sendDataToStreamlit(getCircuitValues());
         e.preventDefault();
     }
 });

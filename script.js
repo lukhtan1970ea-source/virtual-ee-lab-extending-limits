@@ -19,7 +19,7 @@ let knob = { x: 150, y: 320, r: 25, value: 0.0, angle: -Math.PI * 0.75, isDraggi
 // Нова сітка клем: винесені за межі тіла деталей, без зайвих слів "вхід/вихід/плюс/мінус"
 // Нова простора сітка клем: R2 зміщено вправо і вниз (під мультиметр)
 const terminals = [
-    { id: "source_plus", name: "Джерело +", x: 45, y: 75, r: 8, color: "#FF4B4B" },
+    { id: "source_plus", name: "+", x: 45, y: 75, r: 8, color: "#FF4B4B" },
     { id: "source_minus", name: "Джерело -", x: 115, y: 75, r: 8, color: "#1E1E1E" },
     
     { id: "ua_plus", name: "μA +", x: 310, y: 135, r: 8, color: "#FF4B4B" },

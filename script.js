@@ -20,14 +20,14 @@ let knob = { x: 150, y: 320, r: 25, value: 0.0, angle: -Math.PI * 0.75, isDraggi
 // Нова простора сітка клем: R2 зміщено вправо і вниз (під мультиметр)
 const terminals = [
     { id: "source_plus", name: "+", x: 45, y: 75, r: 8, color: "#FF4B4B" },
-    { id: "source_minus", name: "Джерело -", x: 115, y: 75, r: 8, color: "#1E1E1E" },
+    { id: "source_minus", name: "-", x: 115, y: 75, r: 8, color: "#1E1E1E" },
     
     { id: "ua_plus", name: "μA +", x: 310, y: 135, r: 8, color: "#FF4B4B" },
     { id: "ua_minus", name: "μA -", x: 380, y: 135, r: 8, color: "#1E1E1E" },
     
-    { id: "ep_in_u", name: "ЕП Вхід U", x: 540, y: 135, r: 8, color: "#FF8C00" },
-    { id: "ep_in_i", name: "ЕП Вхід I", x: 600, y: 135, r: 8, color: "#FF4B4B" },
-    { id: "ep_com", name: "ЕП Спільний (0)", x: 660, y: 135, r: 8, color: "#1E1E1E" },
+    { id: "ep_in_u", name: "U", x: 540, y: 135, r: 8, color: "#FF8C00" },
+    { id: "ep_in_i", name: "I", x: 600, y: 135, r: 8, color: "#FF4B4B" },
+    { id: "ep_com", name: "0", x: 660, y: 135, r: 8, color: "#1E1E1E" },
     
     // R2 зміщено вправо під мультиметр і вниз на y: 245
     { id: "r2_1", name: "R2", x: 415, y: 295, r: 8, color: "#666" },

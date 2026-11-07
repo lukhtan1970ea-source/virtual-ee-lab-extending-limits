@@ -33,9 +33,9 @@ const terminals = [
     { id: "r2_1", name: "R2", x: 415, y: 295, r: 8, color: "#666" },
     { id: "r2_2", name: "R2", x: 585, y: 295, r: 8, color: "#666" },
     
-    { id: "r1_top", name: "R1", x: 35, y: 245, r: 6, color: "#666" },
-    { id: "r1_bot", name: "R1", x: 265, y: 245, r: 6, color: "#666" },
-    { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 180, r: 6, color: "#32CD32" }
+    { id: "r1_top", name: "R1", x: 40, y: 245, r: 6, color: "#666" },
+    { id: "r1_bot", name: "R1", x: 260, y: 245, r: 6, color: "#666" },
+    { id: "r1_wiper", name: "R1 Повзунок", x: 150, y: 186, r: 7, color: "#32CD32" }
 ];
 
 // Клеми шунта винесені на x: 275 та x: 485 (корпус буде між ними від 300 до 460)

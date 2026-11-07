@@ -1,10 +1,26 @@
 const canvas = document.getElementById('benchCanvas'); 
 const ctx = canvas.getContext('2d'); 
+
+// === БЛОК КРИСТАЛЬНОЙ ЧЁТКОСТИ (БЕЗОПАСНЫЙ ВАРИАНТ) ===
+// 1. Получаем плотность пикселей экрана (1.25, 1.5, 2 и т.д.)
+const dpr = window.devicePixelRatio || 1;
+// 2. Жестко фиксируем базовые размеры (чтобы скрытые вкладки не давали ноль)
+const baseWidth = 700;
+const baseHeight = 400;
+// 3. Увеличиваем внутреннюю матрицу пикселей под разрешение монитора
+canvas.width = baseWidth * dpr;
+canvas.height = baseHeight * dpr;
+// 4. Визуально сжимаем холст до исходных размеров через CSS-стили
+canvas.style.width = baseWidth + 'px';
+canvas.style.height = baseHeight + 'px';
+// 5. Масштабируем контекст, чтобы сетка координат не поплыла
+ctx.scale(dpr, dpr);
+// ======================================================
+
 const clearBtn = document.getElementById('clearBtn');
 
 // Определение этапа лабораторной работы
 let currentStage = window.name.includes("bench_s2") ? "stage2" : (window.name.includes("bench_s3") ? "stage3" : "stage1");
-
 
 let wires = []; 
 let activeTerminal = null; 

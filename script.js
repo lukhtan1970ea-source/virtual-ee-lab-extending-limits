@@ -1,5 +1,21 @@
 const canvas = document.getElementById('benchCanvas'); 
 const ctx = canvas.getContext('2d'); 
+
+// === БЛОК ПОВЫШЕНИЯ ЧЁТКОСТИ (РЕТИНА-ЭФФЕКТ) ===
+// 1. Получаем плотность пикселей экрана (на ПК обычно 1.25, 1.5 или 2)
+const dpr = window.devicePixelRatio || 1;
+// 2. Сохраняем исходные видимые размеры стенда
+const rect = canvas.getBoundingClientRect();
+// 3. Увеличиваем внутреннюю пиксельную матрицу холста под экран
+canvas.width = rect.width * dpr;
+canvas.height = rect.height * dpr;
+// 4. Сжимаем холст обратно до видимых размеров через стили CSS
+canvas.style.width = rect.width + 'px';
+canvas.style.height = rect.height + 'px';
+// 5. Масштабируем все будущие рисунки и тексты, чтобы они не уменьшились
+ctx.scale(dpr, dpr);
+// ===============================================
+
 const clearBtn = document.getElementById('clearBtn');
 
 // Определение этапа лабораторной работы

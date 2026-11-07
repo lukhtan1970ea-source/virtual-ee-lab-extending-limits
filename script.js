@@ -40,8 +40,8 @@ const terminals = [
 
 // Клеми шунта винесені на x: 275 та x: 485 (корпус буде між ними від 300 до 460)
 if (currentStage === "stage2") {
-    terminals.push({ id: "rsh_1", name: "Rш", x: 375, y: 185, r: 8, color: "#8B008B" });
-    terminals.push({ id: "rsh_2", name: "Rш", x: 585, y: 185, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_1", name: "Rш", x: 385, y: 235, r: 8, color: "#8B008B" });
+    terminals.push({ id: "rsh_2", name: "Rш", x: 575, y: 235, r: 8, color: "#8B008B" });
 }
 
 function hasWire(t1, t2) {
@@ -202,7 +202,7 @@ function drawBench() {
 
     // 6. Опір Шунта (на Етапі 2 залишається по центру під мікроамперметром)
     if (currentStage === "stage2") {
-        ctx.fillStyle = "#9370DB"; ctx.fillRect(400, 170, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(400, 170, 160, 30);
+        ctx.fillStyle = "#9370DB"; ctx.fillRect(400, 220, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(400, 220, 160, 30);
         ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Rш = 111.11 Ом", 480, 188);
     }
 

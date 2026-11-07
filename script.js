@@ -127,7 +127,7 @@ function getCircuitValues() {
         // Если на этапе амперметра подключились к гнезду вольтметра U — тока не будет (большое внутреннее сопротивление)
         if (!connected_to_i) return { I_ep: 0, n: 0, mode: "μA" };
         let I = factor * 250.0; 
-        return { I_ep: I, n: I, mode: "μA" };
+        return { I_ep: I, n: Math.round(I), mode: "μA" };
     } 
     else if (currentStage === "stage2") {
         if (!connected_to_i) return { I_ep: 0, n: 0, mode: "μA" };

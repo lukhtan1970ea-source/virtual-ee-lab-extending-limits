@@ -22,16 +22,16 @@ const terminals = [
     { id: "source_plus", name: "+", x: 45, y: 75, r: 8, color: "#FF4B4B" },
     { id: "source_minus", name: "-", x: 115, y: 75, r: 8, color: "#1E1E1E" },
     
-    { id: "ua_plus", name: "μA +", x: 310, y: 135, r: 8, color: "#FF4B4B" },
-    { id: "ua_minus", name: "μA -", x: 380, y: 135, r: 8, color: "#1E1E1E" },
+    { id: "ua_plus", name: "+", x: 310, y: 135, r: 8, color: "#FF4B4B" },
+    { id: "ua_minus", name: "-", x: 380, y: 135, r: 8, color: "#1E1E1E" },
     
     { id: "ep_in_u", name: "U", x: 540, y: 135, r: 8, color: "#FF8C00" },
     { id: "ep_in_i", name: "I", x: 600, y: 135, r: 8, color: "#FF4B4B" },
     { id: "ep_com", name: "0", x: 660, y: 135, r: 8, color: "#1E1E1E" },
     
     // R2 зміщено вправо під мультиметр і вниз на y: 245
-    { id: "r2_1", name: "R2", x: 415, y: 295, r: 8, color: "#666" },
-    { id: "r2_2", name: "R2", x: 585, y: 295, r: 8, color: "#666" },
+    { id: "r2_1", name: "R2", x: 415, y: 315, r: 8, color: "#666" },
+    { id: "r2_2", name: "R2", x: 585, y: 315, r: 8, color: "#666" },
     
     { id: "r1_top", name: "R1", x: 40, y: 245, r: 6, color: "#666" },
     { id: "r1_bot", name: "R1", x: 260, y: 245, r: 6, color: "#666" },
@@ -186,8 +186,8 @@ function drawBench() {
     ctx.font = "10px Arial"; ctx.fillText(vals.mode, 665, 52);
 
     // 4. Резистор R2 (Переміщено вправо під мультиметр і вниз на y: 225)
-    ctx.fillStyle = "#DEB887"; ctx.fillRect(430, 275, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(430, 275, 140, 40);
-    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("R2 = 4 кОм", 500, 299);
+    ctx.fillStyle = "#DEB887"; ctx.fillRect(430, 295, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(430, 295, 140, 40);
+    ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("R2 = 4 кОм", 500, 319);
 
     // 5. Потенціометр R1
     ctx.fillStyle = "#D3D3D3"; ctx.fillRect(50, 195, 200, 170); ctx.strokeStyle = "#333"; ctx.strokeRect(50, 195, 200, 170);

@@ -203,7 +203,7 @@ function drawBench() {
     // 6. Опір Шунта (на Етапі 2 залишається по центру під мікроамперметром)
     if (currentStage === "stage2") {
         ctx.fillStyle = "#9370DB"; ctx.fillRect(400, 220, 160, 30); ctx.strokeStyle = "#333"; ctx.strokeRect(400, 220, 160, 30);
-        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Rш = 111.11 Ом", 580, 238);
+        ctx.fillStyle = "#FFF"; ctx.font = "10px Arial"; ctx.textAlign = "center"; ctx.fillText("Rш = 111.11 Ом", 480, 238);
     }
 
     // ВІЗУАЛІЗАЦІЯ КЛЕМ ТА ЇХ ЧИСТИХ ПІДПИСІВ З ЗОВНІШНІХ БОКІВ

@@ -155,20 +155,40 @@ function drawMicroampermeter(n_val) {
     ctx.beginPath(); ctx.arc(345, 115, 80, -Math.PI * 0.78, -Math.PI * 0.22);
     ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5; ctx.stroke();
 
-    ctx.fillStyle = "#000"; ctx.font = "9px 'Courier New'"; ctx.textAlign = "center";
-    for (let i = 0; i <= 50; i += 5) {
+    ctx.fillStyle = "#000"; ctx.font = "10px monospace"; ctx.textAlign = "center";
+    
+    // ПРОРИСОВКА ШКАЛЫ С ТРЕМЯ ТИПАМИ ШТРИХОВ (ГОСТ)
+    for (let i = 0; i <= 50; i += 1) {
         let angle = -Math.PI * 0.75 + (i / 50.0) * (Math.PI * 0.5);
-        let isMajor = (i % 10 === 0);
-        let len = isMajor ? 6 : 3;
+        
+        let isMajor = (i % 10 === 0); // Крупные штрихи (0, 10, 20, 30, 40, 50)
+        let isMedium = (i % 5 === 0 && !isMajor); // Средние штрихи (5, 15, 25...)
+        
+        // Задаем разную длину и толщину для штрихов
+        let len = 3; // Для мелких (каждый 1)
+        ctx.lineWidth = 0.5;
+        
+        if (isMajor) {
+            len = 7; // Длинный штрих для крупных
+            ctx.lineWidth = 1.5;
+        } else if (isMedium) {
+            len = 5; // Средний штрих для пятерок
+            ctx.lineWidth = 1.0;
+        }
+        
         let x1 = 345 + 80 * Math.cos(angle); let y1 = 115 + 80 * Math.sin(angle);
         let x2 = 345 + (80 - len) * Math.cos(angle); let y2 = 115 + (80 - len) * Math.sin(angle);
+        
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        
+        // Выводим цифры СТРОГО на крупных штрихах (каждые 10)
         if (isMajor) {
-            let tx = 345 + 68 * Math.cos(angle); let ty = 115 + 68 * Math.sin(angle);
-            ctx.fillText(i, tx, ty);
+            let tx = 345 + 66 * Math.cos(angle); let ty = 115 + 66 * Math.sin(angle);
+            ctx.fillText(i, tx, ty + 3); // Выравнивание цифр по высоте
         }
     }
-    ctx.font = "bold 12px Arial"; ctx.fillText("μА", 345, 85);
+    
+    ctx.font = "bold 12px monospace"; ctx.fillText("μА", 345, 85);
 
     let targetAngle = -Math.PI * 0.75 + (n_val / 50.0) * (Math.PI * 0.5);
     if (targetAngle < -Math.PI * 0.78) targetAngle = -Math.PI * 0.78; 
@@ -179,6 +199,7 @@ function drawMicroampermeter(n_val) {
     ctx.strokeStyle = "#FF0000"; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.beginPath(); ctx.arc(345, 105, 3, 0, 2 * Math.PI); ctx.fillStyle = "#000"; ctx.fill();
 }
+
 
 function drawBench() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);

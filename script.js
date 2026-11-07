@@ -212,7 +212,7 @@ function drawBench() {
         ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 2 * Math.PI);
         ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = "#000"; ctx.stroke();
         
-        ctx.fillStyle = "#1E1E1E"; ctx.font = "bold 12px Arial";
+        ctx.fillStyle = "#1E1E1E"; ctx.font = "bold 9px monospace";
         
         // Правила автоматичного зсуву тексту для винесених бокових клем
         if (t.id === "rsh_1" || t.id === "r2_1" || t.id === "r1_top") {

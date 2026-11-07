@@ -186,7 +186,7 @@ function drawBench() {
     ctx.font = "10px Arial"; ctx.fillText(vals.mode, 665, 52);
 
     // 4. Резистор R2 (Переміщено вправо під мультиметр і вниз на y: 225)
-    ctx.fillStyle = "#DEB887"; ctx.fillRect(430, 325, 140, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(530, 225, 140, 40);
+    ctx.fillStyle = "#DEB887"; ctx.fillRect(430, 275, 180, 40); ctx.strokeStyle = "#333"; ctx.strokeRect(530, 225, 140, 40);
     ctx.fillStyle = "#333"; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText("R2 = 4 кОм", 600, 249);
 
     // 5. Потенціометр R1

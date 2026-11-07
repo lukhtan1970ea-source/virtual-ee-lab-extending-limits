@@ -292,12 +292,12 @@ window.addEventListener('keydown', (e) => {
     if (document.activeElement !== canvas) return; // Працює тільки коли клікнули на холст
     
     if (e.key === "ArrowLeft") {
-        knob.value = Math.max(knob.value - 0.001, 0.0); // Ювелірний крок назад
+        knob.value = Math.max(knob.value - 0.0005, 0.0); // Ювелірний крок назад
         drawBench(); 
         sendDataToStreamlit(getCircuitValues());
         e.preventDefault();
     } else if (e.key === "ArrowRight") {
-        knob.value = Math.min(knob.value + 0.001, 1.0); // Ювелірний крок вперед
+        knob.value = Math.min(knob.value + 0.0005, 1.0); // Ювелірний крок вперед
         drawBench(); 
         sendDataToStreamlit(getCircuitValues());
         e.preventDefault();

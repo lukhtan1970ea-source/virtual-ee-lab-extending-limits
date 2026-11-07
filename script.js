@@ -217,7 +217,7 @@ function drawBench() {
     // 3. Вольтметр В7-21А
     ctx.fillStyle = "#222222"; ctx.fillRect(520, 15, 160, 110); ctx.strokeStyle = "#333"; ctx.strokeRect(520, 15, 160, 110);
     ctx.fillStyle = "#0A0A0A"; ctx.fillRect(530, 25, 140, 45);
-    ctx.fillStyle = "#888"; ctx.font = "bold 9px Arial"; ctx.fillText("В7-21А МУЛЬТИМЕТР", 585, 25);
+    ctx.fillStyle = "#888"; ctx.font = "bold 9px Arial"; ctx.fillText("В7-21А    МУЛЬТИМЕТР", 585, 25);
     
     ctx.fillStyle = "#FF1111"; ctx.font = "bold 22px 'Courier New'"; ctx.textAlign = "right";
     ctx.fillText(vals.I_ep.toFixed(vals.mode === "μA" ? 2 : 1), 640, 55);

@@ -30,8 +30,8 @@ const terminals = [
     { id: "ep_com", name: "ЕП Спільний (0)", x: 660, y: 135, r: 8, color: "#1E1E1E" },
     
     // R2 зміщено вправо під мультиметр і вниз на y: 245
-    { id: "r2_1", name: "R2", x: 515, y: 245, r: 8, color: "#666" },
-    { id: "r2_2", name: "R2", x: 685, y: 245, r: 8, color: "#666" },
+    { id: "r2_1", name: "R2", x: 415, y: 295, r: 8, color: "#666" },
+    { id: "r2_2", name: "R2", x: 585, y: 295, r: 8, color: "#666" },
     
     { id: "r1_top", name: "R1", x: 30, y: 245, r: 6, color: "#666" },
     { id: "r1_bot", name: "R1", x: 270, y: 245, r: 6, color: "#666" },
